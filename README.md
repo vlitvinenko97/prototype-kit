@@ -12,7 +12,7 @@ Works for plain HTML/JS and React / Vue + Vite projects, web or mobile prototype
 ## Install
 
 ```bash
-git clone <repo-url> ~/.claude/skills/prototype-kit
+git clone https://github.com/vlitvinenko97/prototype-kit.git ~/.claude/skills/prototype-kit
 ```
 
 Then ask Claude Code to set up the prototype environment (e.g. "set up the prototype environment here"). On first use

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{NAME}} — prototype</title>
+<link rel="stylesheet" href="proto-chrome.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="stage">
+  <!-- The phone. data-inspector-frame is set by proto-chrome.js (frame: "#device"): the local inspector
+       puts its card beside the phone, not over it. -->
+  <div class="device" id="device">
+    <div class="device__btn device__btn--action"></div>
+    <div class="device__btn device__btn--vol-up"></div>
+    <div class="device__btn device__btn--vol-down"></div>
+    <div class="device__btn device__btn--power"></div>
+    <div class="device__screen" id="screen">
+      <!-- Every screen = <section class="screen" data-screen="id"> -->
+      <section class="screen" data-screen="start">
+        <div class="placeholder">{{NAME}} — first screen goes here</div>
+      </section>
+      <div class="device__island" aria-hidden="true"></div>
+    </div>
+  </div>
+</main>
+
+<script src="proto-chrome.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

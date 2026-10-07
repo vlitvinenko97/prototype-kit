@@ -1,0 +1,228 @@
+/* proto-chrome.css — styles for proto-chrome.js (prototype chrome). Part of the prototype (published with it).
+   Everything is prefixed .pc- so it can't collide with the prototype's own classes.
+   Timing: the chrome's own springs (--pc-ease-* / --pc-dur-*, set by proto-chrome.js; fallbacks below). */
+:root {
+  --pc-ease-fast: cubic-bezier(0.25, 1, 0.5, 1);          --pc-dur-fast: 0.2s;
+  --pc-ease-fast-exit: cubic-bezier(0.25, 1, 0.5, 1);     --pc-dur-fast-exit: 0.15s;
+  --pc-ease-moderate: cubic-bezier(0.25, 1, 0.5, 1);      --pc-dur-moderate: 0.35s;
+  --pc-ease-moderate-exit: cubic-bezier(0.25, 1, 0.5, 1); --pc-dur-moderate-exit: 0.28s;
+  --pc-ease-slow: cubic-bezier(0.34, 1.2, 0.64, 1);       --pc-dur-slow: 0.5s;
+  --pc-stage: #cbcbcb;   /* grey stage behind framed devices */
+}
+
+/* ============ Capsule: liquid glass at the left edge ============
+   At rest nearly flat (frosted grey, 1px white rim + three white inner glints, whisper shadow).
+   .is-over (content under it) → dark inner edges + soft shadow. .is-dark (dark backdrop) → smoked glass. */
+.pc-chrome {
+  position: fixed; left: 16px; top: 50%; z-index: 2147483000;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 6px; border-radius: 300px;
+  background: rgba(236, 236, 236, 0.5);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  --pc-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.9), inset 9px 9px 6.5px -7.5px #fff, inset 6px 9px 7px -6px #fff, inset -6px -6px 3px -6px #fff;
+  box-shadow: var(--pc-rim), inset 0 0 0 0 rgba(0, 0, 0, 0), inset 0 0 0 0 rgba(0, 0, 0, 0),
+    0 1px 42px rgba(0, 0, 0, 0.02), 0 4px 29px rgba(0, 0, 0, 0.04), 0 16px 56px rgba(0, 0, 0, 0.04);
+  transition: box-shadow var(--pc-dur-moderate-exit) var(--pc-ease-moderate-exit), background-color var(--pc-dur-moderate-exit) var(--pc-ease-moderate-exit),
+    opacity var(--pc-dur-fast) var(--pc-ease-fast);
+  font: 14px/18px -apple-system, "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.pc-chrome *, .pc-resizer * { box-sizing: border-box; }
+.pc-chrome.is-over {
+  background: rgba(236, 236, 236, 0.42);
+  box-shadow: var(--pc-rim), inset 3px 0 3px 1px rgba(0, 0, 0, 0.12), inset 0 -1px 2px 1px rgba(0, 0, 0, 0.1),
+    0 1px 42px rgba(0, 0, 0, 0.02), 0 4px 29px rgba(0, 0, 0, 0.04), 0 18px 32px -6px rgba(0, 0, 0, 0.2);
+  transition-duration: var(--pc-dur-moderate); transition-timing-function: var(--pc-ease-moderate);
+}
+.pc-chrome.is-dark {
+  background: rgba(30, 30, 30, 0.5);
+  --pc-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.14), inset 9px 9px 6.5px -7.5px rgba(255, 255, 255, 0.3), inset 6px 9px 7px -6px rgba(255, 255, 255, 0.18), inset -6px -6px 3px -6px rgba(255, 255, 255, 0.24);
+}
+
+/* Flow rail (Notion-style lines) + hover list */
+.pc-flows { position: relative; z-index: 1; }
+.pc-flows__rail { display: flex; flex-direction: column; gap: 12px; padding: 12px 8px; transition: opacity var(--pc-dur-fast-exit) var(--pc-ease-fast-exit); }
+.pc-flows__rail i { display: block; width: 16px; height: 2px; border-radius: 1px; background: rgba(0, 0, 0, 0.22); transition: background-color var(--pc-dur-moderate) var(--pc-ease-moderate); }
+.pc-flows__rail i.is-sub { width: 10px; margin-left: 6px; }
+.pc-flows__rail i.is-active { background: rgba(0, 0, 0, 0.8); }
+.pc-chrome.is-dark .pc-flows__rail i { background: rgba(255, 255, 255, 0.3); }
+.pc-chrome.is-dark .pc-flows__rail i.is-active { background: rgba(255, 255, 255, 0.92); }
+.pc-flows:hover .pc-flows__rail, .pc-flows:focus-within .pc-flows__rail { opacity: 0; transition-duration: 0s; }
+
+/* Dense dark-glass panels (flows list, default sizes). Their backdrop-filter only blurs the capsule
+   (the capsule is their backdrop root) — that's why they're dense; a page-blurring variant was rejected. */
+.pc-panel {
+  position: absolute; left: -6px; padding: 6px; border-radius: 16px;
+  background: rgba(20, 20, 20, 0.94);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.35);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity var(--pc-dur-fast-exit) var(--pc-ease-fast-exit), transform var(--pc-dur-fast-exit) var(--pc-ease-fast-exit),
+    visibility 0s linear var(--pc-dur-fast-exit);
+}
+.pc-panel__head { margin: 0; padding: 6px 8px 4px; font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: 0.02em; color: rgba(255, 255, 255, 0.4); }
+.pc-flows__panel { top: 50%; width: 232px; max-height: calc(100vh - 32px); overflow-y: auto; transform: translateY(-50%) scale(0.97); transform-origin: left center; }
+.pc-flows:hover .pc-flows__panel, .pc-flows:focus-within .pc-flows__panel,
+.pc-dsizes:hover .pc-dsizes__panel, .pc-dsizes:focus-within .pc-dsizes__panel {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transition: opacity var(--pc-dur-fast) var(--pc-ease-fast), transform var(--pc-dur-fast) var(--pc-ease-fast), visibility 0s;
+}
+.pc-flows:hover .pc-flows__panel, .pc-flows:focus-within .pc-flows__panel { transform: translateY(-50%); }
+.pc-flows__list { list-style: none; margin: 0; padding: 0; }
+.pc-flows__item {
+  display: block; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: none;
+  font: inherit; text-align: left; color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.pc-flows__item.is-sub { padding-left: 22px; }
+.pc-flows__item:hover, .pc-flows__item:focus-visible { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.9); outline: 0; }
+.pc-flows__item.is-active { color: #fff; font-weight: 500; }
+
+/* Round glass buttons (devices, sizes): active = solid white disc; press = swell + bloom + blurred icon,
+   stretches toward the pointer (--pc-tx/ty/sx/sy from pressGlass), springs back on the slow tier */
+.pc-devices, .pc-dsizes { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid rgba(0, 0, 0, 0.06); }
+.pc-dsizes { position: relative; }
+.pc-chrome.is-dark .pc-devices, .pc-chrome.is-dark .pc-dsizes { border-top-color: rgba(255, 255, 255, 0.1); }
+.pc-btn {
+  display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
+  background: none; cursor: pointer; color: rgba(0, 0, 0, 0.35);
+  transform: translate(var(--pc-tx, 0px), var(--pc-ty, 0px)) scale(var(--pc-sx, 1), var(--pc-sy, 1));
+  transition: color var(--pc-dur-fast-exit) var(--pc-ease-fast-exit), background-color var(--pc-dur-fast-exit) var(--pc-ease-fast-exit),
+    box-shadow var(--pc-dur-fast-exit) var(--pc-ease-fast-exit), transform var(--pc-dur-slow) var(--pc-ease-slow);
+}
+.pc-btn svg { display: block; transition: filter var(--pc-dur-fast-exit) var(--pc-ease-fast-exit); }
+.pc-btn:hover { color: rgba(0, 0, 0, 0.6); background: rgba(255, 255, 255, 0.45); transition-duration: var(--pc-dur-fast), var(--pc-dur-fast), var(--pc-dur-fast), var(--pc-dur-slow); }
+.pc-btn.is-active { color: #1b1b1b; background: #fafafa; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
+.pc-chrome.is-dark .pc-btn { color: rgba(255, 255, 255, 0.5); }
+.pc-chrome.is-dark .pc-btn:hover { color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.1); }
+.pc-chrome.is-dark .pc-btn.is-active { color: #fff; background: rgba(255, 255, 255, 0.22); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }   /* translucent, lighter than the glass — no solid white disc */
+.pc-btn.is-pressed {
+  background: radial-gradient(circle at 50% 50%, #fff 0 35%, rgba(255, 255, 255, 0.55) 70%, rgba(255, 255, 255, 0.85) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.95), inset 0 -2px 4px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.12);
+  transition: transform var(--pc-dur-moderate) var(--pc-ease-moderate), background-color 0s, box-shadow var(--pc-dur-moderate) var(--pc-ease-moderate);
+}
+.pc-btn.is-pressed svg { filter: blur(1.5px); transition: filter var(--pc-dur-moderate) var(--pc-ease-moderate); }
+.pc-btn:focus-visible { outline: 2px solid rgba(0, 0, 0, 0.3); outline-offset: 1px; }
+.pc-reduced .pc-btn { --pc-tx: 0px !important; --pc-ty: 0px !important; --pc-sx: 1 !important; --pc-sy: 1 !important; }
+
+/* Default sizes panel (opens on hover over the capsule's bottom; focus-within keeps it while typing) */
+.pc-dsizes__panel { bottom: -6px; width: 248px; padding-bottom: 8px; transform: scale(0.97); transform-origin: left bottom; }
+.pc-dsizes:hover .pc-dsizes__panel, .pc-dsizes:focus-within .pc-dsizes__panel { transform: none; }
+.pc-dsizes__row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; }
+.pc-dsizes__label { flex: 1; color: rgba(255, 255, 255, 0.55); }
+.pc-dsizes__row.is-current .pc-dsizes__label { color: #fff; font-weight: 500; }
+.pc-dsizes__x { font-size: 12px; color: rgba(255, 255, 255, 0.35); }
+.pc-dsizes__in {
+  width: 58px; height: 28px; padding: 0 8px; border: 0; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08); color: #fff;
+  font: 500 13px/28px -apple-system, "SF Pro Text", system-ui, sans-serif; font-variant-numeric: tabular-nums; text-align: right;
+  -moz-appearance: textfield; appearance: textfield;
+  transition: background-color var(--pc-dur-fast-exit) var(--pc-ease-fast-exit), box-shadow var(--pc-dur-fast-exit) var(--pc-ease-fast-exit);
+}
+.pc-dsizes__in::-webkit-outer-spin-button, .pc-dsizes__in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pc-dsizes__in::placeholder { color: rgba(255, 255, 255, 0.35); }
+.pc-dsizes__in:hover { background: rgba(255, 255, 255, 0.12); }
+.pc-dsizes__in:focus { outline: 0; background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.pc-dsizes__in.is-bad { box-shadow: inset 0 0 0 1px rgba(255, 99, 88, 0.8); }
+.pc-dsizes__reset {
+  display: block; margin: 6px 8px 0; padding: 0; border: 0; background: none; cursor: pointer;
+  font: 400 12px/16px -apple-system, "SF Pro Text", system-ui, sans-serif; color: rgba(255, 255, 255, 0.45);
+}
+.pc-dsizes__reset:hover { color: rgba(255, 255, 255, 0.85); }
+
+/* ============ Web stage: the page is only chrome + the prototype in one iframe ============ */
+html.pc-host { overflow: hidden; scrollbar-gutter: auto; }
+.pc-host body { margin: 0; background: var(--pc-stage); }
+.pc-host body > :not(.pc-chrome):not(.pc-device):not(.pc-resizer):not(.pc-hint) { display: none !important; }
+.pc-embed .pc-chrome { display: none; }
+.pc-device { position: absolute; border: 0; border-radius: 16px; background: #fff; transform-origin: 0 0; }
+.pc-fill .pc-device { position: fixed; left: 0; top: 0; width: 100%; height: 100%; border-radius: 0; }
+
+/* Resizable frame: grips outside the right / bottom edges + corner, size label above (hover / drag) */
+.pc-resizer { position: absolute; z-index: 90; pointer-events: none; transition: opacity var(--pc-dur-fast) var(--pc-ease-fast); }
+.pc-fill .pc-resizer, html:not(.pc-host) .pc-resizer { display: none; }
+.pc-resizer__h { position: absolute; pointer-events: auto; display: grid; place-items: center; touch-action: none; }
+.pc-resizer__h--r { left: 100%; top: 0; bottom: 0; width: 24px; cursor: ew-resize; }
+.pc-resizer__h--b { top: 100%; left: 0; right: 0; height: 24px; cursor: ns-resize; }
+.pc-resizer__h--rb { left: 100%; top: 100%; width: 24px; height: 24px; cursor: nwse-resize; }
+.pc-resizer__h i { display: block; border-radius: 3px; background: rgba(0, 0, 0, 0.18); transition: background-color var(--pc-dur-fast-exit) var(--pc-ease-fast-exit), transform var(--pc-dur-fast-exit) var(--pc-ease-fast-exit); }
+.pc-resizer__h--r i { width: 4px; height: 40px; }
+.pc-resizer__h--b i { width: 40px; height: 4px; }
+.pc-resizer__h:hover i, .pc-resizing-x .pc-resizer__h--r i, .pc-resizing-y .pc-resizer__h--b i, .pc-resizing-xy .pc-resizer__h i { background: rgba(0, 0, 0, 0.45); }
+.pc-resizer__h--r:hover i, .pc-resizing-x .pc-resizer__h--r i { transform: scaleX(1.25); }
+.pc-resizer__h--b:hover i, .pc-resizing-y .pc-resizer__h--b i { transform: scaleY(1.25); }
+.pc-resizer__size {
+  position: absolute; left: 50%; bottom: 100%; margin-bottom: 12px; transform: translateX(-50%);
+  padding: 4px 10px; border-radius: 300px; white-space: nowrap;
+  font: 500 12px/16px -apple-system, "SF Pro Text", system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  color: rgba(0, 0, 0, 0.6); background: rgba(255, 255, 255, 0.6);
+  opacity: 0; transition: opacity var(--pc-dur-fast-exit) var(--pc-ease-fast-exit);
+}
+.pc-resizer:has(.pc-resizer__h:hover) .pc-resizer__size, .pc-resizing .pc-resizer__size { opacity: 1; }
+.pc-resizing .pc-device { pointer-events: none; }
+.pc-resizing, .pc-resizing * { user-select: none; }
+.pc-resizing-x, .pc-resizing-x * { cursor: ew-resize !important; }
+.pc-resizing-y, .pc-resizing-y * { cursor: ns-resize !important; }
+.pc-resizing-xy, .pc-resizing-xy * { cursor: nwse-resize !important; }
+
+/* ⌘\ / Ctrl+\ hides the chrome (html.chrome-hidden). Mark other chrome (demo hints…) with .pc-hideable */
+.chrome-hidden .pc-chrome, .chrome-hidden .pc-resizer, .chrome-hidden .pc-hideable {
+  opacity: 0 !important; pointer-events: none !important;
+  transition: opacity var(--pc-dur-fast-exit) var(--pc-ease-fast-exit) !important;
+}
+.chrome-hidden .pc-resizer * { pointer-events: none !important; }
+
+/* Demo hints: card right of the device (placed by proto-chrome.js). Flat #fafafa, 1.5px white border, no shadow
+   (gradient / rims / shadow read as a shadow); SF system font; groups separated by spacing only; text-wrap: pretty so
+   no line ends with a single orphan word; value = soft grey pill on its own line (tap fills the field). */
+.pc-hint {
+  position: fixed; z-index: 100; box-sizing: border-box; width: 300px; margin: 0;
+  padding: 22px 28px; border-radius: 16px;
+  background: #fafafa; border: 1.5px solid #fff; color: #111;
+  font: 14px/19px -apple-system, "SF Pro Text", system-ui, sans-serif;
+  opacity: 0; visibility: hidden; transform: translateX(-8px);
+  transition: opacity var(--pc-dur-fast-exit) var(--pc-ease-fast-exit), transform var(--pc-dur-fast-exit) var(--pc-ease-fast-exit),
+    visibility 0s linear var(--pc-dur-fast-exit);
+}
+.pc-hint[hidden] { display: none; }
+.pc-hint.is-visible {
+  opacity: 1; visibility: visible; transform: none;
+  transition: opacity var(--pc-dur-moderate) var(--pc-ease-moderate), transform var(--pc-dur-moderate) var(--pc-ease-moderate), visibility 0s;
+}
+.pc-reduced .pc-hint { transform: none; }
+.pc-hint p { margin: 0; }
+.pc-hint__title { font-weight: 600; font-size: 20px; line-height: 25px; letter-spacing: -0.3px; text-wrap: balance; }
+.pc-hint__text { margin-top: 4px !important; color: #858585; text-wrap: pretty; }
+.pc-hint__rows { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.pc-hint__row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.pc-hint__label { font-weight: 600; }
+.pc-hint__line { color: #858585; text-wrap: pretty; }
+.pc-hint__value {
+  margin-top: 6px; max-width: 100%; padding: 7px 14px; border: 0; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05); color: #111; font: 500 13px/18px -apple-system, "SF Pro Text", system-ui, sans-serif;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  transition: transform var(--pc-dur-moderate) var(--pc-ease-moderate), background-color var(--pc-dur-fast) var(--pc-ease-fast);
+}
+.pc-hint__value:disabled { cursor: default; }
+.pc-hint__value:not(:disabled):hover, .pc-hint__value:focus-visible { background: rgba(0, 0, 0, 0.08); outline: 0; }
+.pc-hint__value:not(:disabled):active { transform: scale(0.96); background: rgba(0, 0, 0, 0.1); transition-duration: var(--pc-dur-fast); }
+
+/* System message (toast): unbuilt screens / actions. One line when it fits, ≥ 40px from the edges (100% − 80px, not
+   100vw — that counts the scrollbar), centred + balanced when it wraps; dark plate, top centre. */
+.pc-toast {
+  position: fixed; left: 50%; top: 20px; z-index: 2147483000;
+  width: max-content; max-width: calc(100% - 80px);
+  padding: 10px 16px; border-radius: 12px;
+  background: #1c1c1e; color: #fff; font-size: 13px; line-height: 18px;
+  text-align: center; text-wrap: balance;
+  opacity: 0; transform: translate(-50%, -12px); pointer-events: none;
+  transition: opacity var(--pc-dur-moderate-exit) var(--pc-ease-moderate-exit), transform var(--pc-dur-moderate-exit) var(--pc-ease-moderate-exit);
+}
+.pc-toast.is-open {
+  opacity: 1; transform: translate(-50%, 0);
+  transition-duration: var(--pc-dur-moderate); transition-timing-function: var(--pc-ease-moderate);
+}
+.pc-reduced .pc-toast { transform: translate(-50%, 0); }

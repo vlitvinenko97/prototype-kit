@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototypes</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 64px 24px;
+    background: #f2f2f2; color: #111;
+    font: 15px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .sub { margin: 0 0 32px; color: #858585; }
+  .list { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .card {
+    display: block; padding: 20px 22px; border-radius: 16px;
+    background: #fafafa; border: 1.5px solid #fff; color: inherit; text-decoration: none;
+    transition: transform .2s;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card:active { transform: scale(0.98); }
+  .card b { display: block; font-size: 17px; font-weight: 600; }
+  .card span { color: #858585; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Prototypes</h1>
+  <p class="sub">Local workspace — one folder per business.</p>
+  <div class="list">
+    <!-- cards: <a class="card" href="slug/"><b>Name</b><span>What · Platform</span></a> -->
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,59 @@
+/* {{NAME}} — prototype styles. Tokens in :root (Figma colour / text styles), then one block per section. */
+:root {
+  /* Figma tokens go here, named after the Figma styles (the local inspector shows these names) */
+  --bg: #ffffff;
+  --content-primary: #0a0a0a;
+  --content-secondary: #706f6a;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+
+  --ease-default: cubic-bezier(0.25, 1, 0.5, 1); --dur-default: 0.25s;
+
+  /* Mobile prototypes: phone screen size from the Figma frame */
+  --screen-w: 375px;
+  --screen-h: 812px;
+  --bezel: 10px;
+  --device-radius: 56px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--content-primary); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+p, h1, h2, h3 { margin: 0; }
+img { display: block; }
+
+/* ---------- Screens ---------- */
+.screen { display: none; }
+.screen.is-active { display: block; }
+.placeholder { display: grid; place-items: center; min-height: 100vh; color: var(--content-secondary); }
+
+/* ---------- Mobile: grey stage + phone mockup (unused in web prototypes) ---------- */
+body:has(.stage) { background: var(--pc-stage, #cbcbcb); overflow: hidden; }
+.stage { height: 100%; display: flex; align-items: center; justify-content: center; }
+.device {
+  --scale: 1;
+  position: relative; flex-shrink: 0;
+  width: calc(var(--screen-w) + var(--bezel) * 2);
+  height: calc(var(--screen-h) + var(--bezel) * 2);
+  padding: var(--bezel);
+  border-radius: var(--device-radius);
+  background: #111;
+  box-shadow: inset 0 0 0 2px #2c2c2e, inset 0 0 0 5px #0a0a0a, 0 0 0 1px #3a3a3c;   /* no drop shadow on the grey stage */
+  transform: scale(var(--scale));
+  margin: calc((var(--scale) - 1) * (var(--screen-h) + var(--bezel) * 2) / 2) calc((var(--scale) - 1) * (var(--screen-w) + var(--bezel) * 2) / 2);
+}
+.device__btn { position: absolute; width: 4px; background: #2c2c2e; border-radius: 2px; }
+.device__btn--action { left: -3px; top: 150px; height: 32px; }
+.device__btn--vol-up { left: -3px; top: 210px; height: 62px; }
+.device__btn--vol-down { left: -3px; top: 286px; height: 62px; }
+.device__btn--power { right: -3px; top: 240px; height: 96px; }
+.device__screen {
+  position: relative; width: var(--screen-w); height: var(--screen-h);
+  border-radius: calc(var(--device-radius) - var(--bezel));
+  overflow: clip;   /* clip, not hidden: focus / scrollIntoView must never scroll the phone viewport */
+  background: var(--bg);
+}
+.device__screen .placeholder { min-height: var(--screen-h); }
+.device__island { position: absolute; left: 50%; top: 11px; width: 125px; height: 37px; margin-left: -62.5px; border-radius: 20px; background: #000; z-index: 50; }
+
+/* System messages (toast) come from proto-chrome: ProtoChrome.toast / data-action="soon" / data-soon */

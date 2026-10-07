@@ -1,0 +1,159 @@
+# Prototype chrome — `proto-chrome.js` / `proto-chrome.css`
+
+The chrome is part of the prototype: it is published with it. One copy per prototype folder (copied from `templates/prototype/`, updated with `kit.py update-chrome <dir>`). All classes are prefixed `.pc-`; html state classes: `pc-host`, `pc-embed`, `pc-fill`, `pc-resizing*`, `pc-reduced`, `chrome-hidden`.
+
+## API
+
+```js
+const pc = ProtoChrome.init({
+  id: "slug",                 // storage prefix: <id>:device-sizes (localStorage), <id>:chrome-hidden (sessionStorage)
+  title: "Brand prototype",   // device iframe title (web)
+  mode: "web" | "mobile",
+  frame: "#device",           // mobile: phone element → gets data-inspector-frame
+  defaultScreen: "sign-in",
+  flows: [{ label, screen, q?: { key: value }, sub?: true }],
+  flowKeys: ["open", "state"],              // params a point may set; every other point clears them
+  devices: { desktop: [null, null], tablet: [768, null], mobile: [375, 812] },   // web; null = Fill
+  hints: { "sign-in": { title, text, rows: [{ label, text, value?, fill? }] } },  // demo hints, see below
+});
+if (pc.isHost) return;        // web: the top page is only the stage — never boot the app there
+// in the router: ProtoChrome.screen(id) on every go()
+// ProtoChrome.toggle(force?) — hide/show programmatically
+// ProtoChrome.toast(msg) — system message (see below); option soonText overrides the default text
+// ProtoChrome.hint(def | null) — show / hide a demo hint from code (see below)
+```
+Mark any other chrome you add beside the device with `.pc-hideable` so ⌘\ hides it too (the kit's hints already are).
+
+## React / Vite (SPA) projects
+Same module, no React port.
+1. `python3 ~/.claude/skills/prototype-kit/scripts/kit.py vite <project>` → `public/proto-chrome.js/.css`,
+   `src/proto-chrome.d.ts` (types for `window.ProtoChrome`), `vite-inspector.ts` + `inspector.js` at the project root.
+2. `index.html`: `<link rel="stylesheet" href="/proto-chrome.css">` in `<head>`; `<script src="/proto-chrome.js"></script>`
+   (classic) **before** `<script type="module" src="/src/main.tsx">`.
+3. `main.tsx`: `const pc = window.ProtoChrome.init({...}); if (!pc.isHost) createRoot(...).render(<App/>)` — the host page
+   mounts nothing (`.pc-host body > :not(.pc-…)` hides `#root` anyway). Flows list lives in this init.
+4. Router: `window.ProtoChrome.screen(id)` in an effect on the current screen.
+5. `vite.config`: `plugins: [react(), inspector("./inspector.js")]` (see `inspector.md`); add `vite-inspector.ts` to
+   `tsconfig.node.json` "include" if it lists files.
+6. Check: `dist/` has `proto-chrome.*` and no `inspector.js` / `<script src="/inspector.js">` (the chrome only mentions it in comments); dev page shows capsule + device switcher + Inspect pill,
+   ⌘\ hides, switching device keeps the app state, inspector works inside the iframe.
+
+## One-page flows (points = sections of one page)
+When the prototype is one long page (landing, long form, article) and the starting points are its sections, a
+point must **scroll to the section, never reload** — the kit's default "point = fresh load" is for multi-screen
+prototypes. Keep `proto-chrome.js` untouched; do it in the prototype's own init code:
+- `flows`: one point per section, `screen` = the section's element `id`; `defaultScreen` = the first one.
+- **Web host**: a `click` listener on `document` in the **capture** phase catches `.pc-flows__item` before the kit's own
+  handler → `e.stopPropagation()`, index of the item = index in `flows`, `history.replaceState` with `?screen=<id>`
+  (keeps `?device`/`?size`; the link stays shareable), then `postMessage({ flowScroll: id }, location.origin)` to
+  `iframe.pc-device`'s `contentWindow`. Then `return` (the host boots nothing).
+- **Embed** (or mobile, where there's no iframe — do the same in the page itself):
+  - on load `?screen=<id>` → `scrollIntoView()` without animation + `ProtoChrome.screen(id)`;
+  - on the message (check `e.origin`) → `ProtoChrome.screen(id)` **at once**, then
+    `scrollIntoView({ behavior: "smooth" })` (`"auto"` under `prefers-reduced-motion`);
+  - an `IntersectionObserver` (`rootMargin: "-45% 0px -55% 0px"` = the section crossing the middle of the viewport)
+    calls `ProtoChrome.screen(id)` so the rail follows manual scrolling;
+  - while a point's smooth scroll runs, the observer is muted (a `scrollingTo` flag cleared on `scrollend` + a ~1.5s
+    timeout, because no `scrollend` fires when the section is already in place) — otherwise the rail flickers through
+    every section passed on the way.
+- React: all of it in one `useEffect` with a module-level `started` flag (StrictMode runs effects twice; `init` must run once).
+- Check: a point keeps the page state (set `window.__marker = 1` on host + iframe, click a point, both still there),
+  URL gets `?screen=`, the right point is lit, a fresh load of that URL opens on the section.
+
+```js
+const FLOWS = [{ label: "Hero", screen: "top" }, { label: "Pricing", screen: "pricing" }, { label: "FAQ", screen: "faq" }];
+const pc = ProtoChrome.init({ id: "slug", title: "Landing", mode: "web", defaultScreen: "top", flows: FLOWS });
+
+if (pc.isHost) {
+  document.addEventListener("click", (e) => {
+    const item = e.target.closest?.(".pc-flows__item");
+    if (!item) return;
+    e.stopPropagation();                                   // the kit's handler would reload the page
+    const { screen } = FLOWS[[...document.querySelectorAll(".pc-flows__item")].indexOf(item)];
+    const q = new URLSearchParams(location.search);
+    q.set("screen", screen);
+    history.replaceState(null, "", `${location.pathname}?${q}`);
+    document.querySelector("iframe.pc-device")?.contentWindow?.postMessage({ flowScroll: screen }, location.origin);
+  }, true);
+} else {
+  const start = new URLSearchParams(location.search).get("screen");
+  if (start) document.getElementById(start)?.scrollIntoView();
+  ProtoChrome.screen(start || "top");
+
+  let scrollingTo = null;
+  addEventListener("message", (e) => {
+    if (e.origin !== location.origin || !e.data?.flowScroll) return;
+    const el = document.getElementById(e.data.flowScroll);
+    if (!el) return;
+    scrollingTo = el.id;
+    ProtoChrome.screen(el.id);
+    const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+    setTimeout(() => { if (scrollingTo === el.id) scrollingTo = null; }, smooth ? 1500 : 0);
+  });
+  addEventListener("scrollend", () => { scrollingTo = null; });
+
+  const observer = new IntersectionObserver((entries) => {
+    if (scrollingTo) return;
+    for (const e of entries) if (e.isIntersecting) ProtoChrome.screen(e.target.id);
+  }, { rootMargin: "-45% 0px -55% 0px" });
+  for (const { screen } of FLOWS) { const el = document.getElementById(screen); if (el) observer.observe(el); }
+}
+```
+
+
+## What it does
+
+**Capsule** — one vertical pill fixed at left 16px, vertically centred, liquid glass:
+- Rest: frosted grey `rgba(236,236,236,.5)` + `blur(12) saturate(160%)`, 1px white rim + three white inner glints (`inset 9 9 6.5 -7.5 #fff`, `inset 6 9 7 -6 #fff`, `inset -6 -6 3 -6 #fff`), whisper shadow.
+- **Scroll Effect** (`.is-over`): depth — dark inner edges `inset 3px 0 3px 1px`, `inset 0 -1px 2px 1px` + soft shadow under it — only while *content* is under the glass (text glyphs, svg/img/inputs, small ≤64px painted things like checkboxes/chips/avatars; a bigger opaque fill = surface, stops the probe). Sampled every 150ms on an 8px grid with `elementsFromPoint`, through same-origin iframes.
+- **Adaptive tone** (`.is-dark`, like Apple's Liquid Glass): backdrop luminance (background layers composited to the first opaque one; img/video/canvas don't vote; 12px grid) < 0.2 → smoked glass `rgba(30,30,30,.5)`, dimmer rim, light lines/icons; > 0.3 → light; in between keeps the current (hysteresis).
+- No `document.hidden` check in the samplers — the review pane reports hidden while visible.
+
+**Flow starting points** — Notion-style rail of short lines (16×2, sub-points 10px indented), active line dark. Hover / focus → dense dark-glass list (`rgba(20,20,20,.94)` + `blur(40)`, radius 16, 232px) covering the rail; "Flow starting points" header; active item white 500. A point = fresh load with `?screen=<id>` + its params (keeps `?device`, `?size`, `?motion`) — except one-page prototypes, where a point scrolls to its section (see "One-page flows"). Light the current point from the router (`ProtoChrome.screen`).
+
+**Web only — the stage:** the top page shows the prototype in ONE iframe (`?embed=1`, same URL); the top page renders nothing else (`.pc-host body > :not(.pc-…)` hidden). Inside the iframe (`pc-embed`) there's no chrome; its `screen()` posts to the stage.
+- **Devices** Desktop / Tablet / Mobile (24px icons, stroke 1 in a 16 viewBox, 32px round buttons under the rail, divider above). Active = solid white disc + dark icon on light glass; on dark glass a translucent light plate (white 22% + faint rim) with a white icon — never a solid white disc there. Switching **only resizes the iframe — no reload, the state stays**; `?device` in the URL via replaceState.
+- **Default sizes** — sliders button under the devices; panel opens **on hover** (focus-within keeps it while typing; Esc blurs) over the capsule's bottom: W × H per device, **empty side = Fill** (takes the stage's room at 100%: window − 80px sides / 56px top-bottom). Defaults: Desktop Fill × Fill (= iframe fills the whole window, no frame), Tablet 768 × Fill, Mobile 375 × 812. Live apply; bad values red, reverted on blur; "Reset to defaults". localStorage, overrides only. Limits 320×480 … 2560×1600.
+- **Scale**: a framed device is always shown at the scale that fits the window, never above 100%.
+- **Resizable frame** (Chrome responsive mode): grips outside the right / bottom edge + corner; the frame stays centred so it grows on both sides (Δ×2 ÷ scale at drag start); past the window it zooms out live; label above the frame on hover/drag `W × H` (+ ` · N%` when scaled). Custom size `?size=WxH` (`fill` for a Fill side; dragging one axis keeps the other's Fill). Active device again / another device / double-click a grip → preset.
+- **Click Effect** on the round buttons: press = swell 1.15 + white bloom + blurred icon; drag stretches toward the pointer (±4px, +12% along the axis); release springs back with a little bounce.
+
+**Mobile** — the phone is in the page (`#device`, grey stage `#cbcbcb`, 10px bezel, no drop shadow, scaled to fit). No device switcher. The capsule gets the same glass/tone behaviour.
+
+**Hide chrome: ⌘\ / Ctrl+\** (Figma's own "Show/Hide UI"; unused by browsers/macOS, types nothing, works with focus in inputs) toggles `html.chrome-hidden` on the top page — capsule, grips, `.pc-hideable` fade out; the local inspector hides its pill (it watches that class). Inside the iframe the key is posted up. Per-tab sessionStorage.
+
+**System messages (toast)** — every message about the prototype's own limits goes through the module, never a
+local toast: `data-action="soon"` on an element → "This part isn't designed yet"; `data-soon="Only page 1 is designed
+yet"` → its own text; from code `ProtoChrome.toast(msg)` (e.g. "Social sign-in isn't part of the prototype yet",
+"Legal pages aren't designed yet"). Look: dark `#1c1c1e` plate, radius 12, 13px, top 20px centred, one line when it
+fits, ≥ 40px from the edges, centred + balanced when wrapping, moderate spring, 2.2s; shown in the prototype's
+document (inside the device iframe on web). Messages that belong to the product itself (e.g. "Promo code copied")
+are the design's own UI, not this.
+
+**Demo hints** (`hints` in init, `.pc-hint`) — a card right of the device that explains a prototype rule the viewer
+can't guess. **Only on screens where the prototype branches** (registered vs new email, right vs wrong OTP code) — not
+for "any value works" cases (passwords). Each hint: title + grey line, then rows `{ label, text, value?, fill? }`
+separated by spacing only; `value` = a soft grey pill on its own line, tap types it into the field `fill` (selector,
+first visible match in the prototype — inside the device iframe on web) and fires `input`; mousedown is prevented so
+the field keeps focus (the phone keyboard stays). The value must be the same constant the code checks, so the hint
+stays honest. Same object on several screens → the card stays still between them; another hint → quick exit, new
+content, moderate entrance. `ProtoChrome.hint(def | null)` for states inside one screen (the next `screen()` returns
+to `hints`).
+- Look: flat `#fafafa` card, 1.5px white border, **no gradient / rims / shadow**
+  (they read as a shadow); radius 16, padding 22/28, width 300; SF system font; title 20/25 semibold, lines and text
+  14/19 `#858585`, row label semibold `#111`; pill 13/18 medium, `rgba(0,0,0,.05)` → hover .08 → press .1 + scale .96;
+  `text-wrap: pretty` so no line ends with one orphan word.
+- Placement: on the top page (never inside the prototype), left of the card = device right + gap 16…40 (web: + 16 for
+  the resize grip), width ≤ 300 shrinking with the room, top = device top + 64 per 832px of device height. Hidden when
+  there's < 220px of room (narrow windows) and on web Desktop Fill; the device is never shrunk or moved for it.
+  `.pc-hideable` (⌘\ hides it), the inspector skips it.
+
+## Rejected / don't redo
+- A separate chrome strip (64px column) that narrows the prototype.
+- Moving the capsule glass to `::before` so the dark lists blur the page; the lists stay dense instead.
+- Coloured (mint) active items in the capsule (line, list text, device disc / icon); active stays neutral, mint only for the active Inspect pill.
+- Opening the sizes panel on click — it opens on hover like the flows list.
+- Zoom presets (Fit / 50 / 75 / 100).
+- Demo hints with a gradient, glass rims or a drop shadow; divider lines between rows; the value inline in the text
+  (it's a pill on its own line).

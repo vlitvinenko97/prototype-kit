@@ -2,6 +2,9 @@
 (() => {
   "use strict";
   const params = new URLSearchParams(location.search);
+  // The prototype must also run with the kit removed (proto-chrome.js not loaded, e.g. handed off without it): then
+  // every chrome call is a no-op — no capsule, no toasts / hints, the screens work the same.
+  const ProtoChrome = window.ProtoChrome ?? { init: () => ({ isHost: false, isEmbed: false }), screen() {}, toast() {}, hint() {}, toggle() {} };
 
   /* ============ Prototype chrome (flow starting points; web: device switcher, sizes, resizable frame) ============
      Add each new section's entry screen to FLOWS. A point reloads with ?screen=<id> + its own params;

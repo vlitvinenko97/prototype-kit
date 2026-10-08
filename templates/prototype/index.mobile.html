@@ -9,9 +9,9 @@
 </head>
 <body>
 <main class="stage">
-  <!-- The phone. data-inspector-frame is set by proto-chrome.js (frame: "#device"): the local inspector
-       puts its card beside the phone, not over it. -->
-  <div class="device" id="device">
+  <!-- The phone. data-inspector-frame: the local inspector puts its card beside the phone, not over it. Written here
+       (inert, fine in deploys) so it works with the chrome removed too; the chrome (frame: "#device") also sets it. -->
+  <div class="device" id="device" data-inspector-frame>
     <div class="device__btn device__btn--action"></div>
     <div class="device__btn device__btn--vol-up"></div>
     <div class="device__btn device__btn--vol-down"></div>

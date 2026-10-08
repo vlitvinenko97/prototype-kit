@@ -16,7 +16,8 @@ interface ProtoChromeOptions {
   hints?: Record<string, ProtoChromeHint>;   // demo hints per screen id (only where the prototype branches)
 }
 interface Window {
-  ProtoChrome: {
+  // Optional: the app must also run with the kit removed — call it as window.ProtoChrome?.screen(id)
+  ProtoChrome?: {
     init(options: ProtoChromeOptions): { isHost: boolean; isEmbed: boolean };
     screen(id: string): void;         // call from the router on every screen change
     toggle(force?: boolean): void;    // hide / show the chrome (⌘\)

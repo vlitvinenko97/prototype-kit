@@ -32,6 +32,19 @@
   const params = new URLSearchParams(location.search);
   const html = document.documentElement;
 
+  /* Every chrome layer (capsule, device iframe, resizer, hint, toast) lives on <html>, not <body>: a prototype's
+     body transform / filter / contain / will-change makes body the containing block of position: fixed (the capsule
+     fell down under the layout), and a body re-render (innerHTML, a framework remount) removed it. A MutationObserver
+     puts a layer back if something still removes it. z-index 2147483000 for all of them (the inspector is above). */
+  const mounted = new Set();
+  let keeper = null;
+  function mount(el) {
+    mounted.add(el);
+    html.append(el);
+    keeper ??= new MutationObserver(() => mounted.forEach((n) => n.isConnected || html.append(n)));
+    keeper.observe(html, { childList: true });
+  }
+
   /* ---------- Motion: Fluid Functionalism springs as CSS linear() (--pc-ease-* / --pc-dur-*) ---------- */
   function spring(visualDuration, bounce = 0) {
     const root = (2 * Math.PI) / (visualDuration * 1.2);
@@ -195,7 +208,7 @@
           <button class="pc-dsizes__reset" type="button">Reset to defaults</button>
         </div>
       </div>` : ""}`;
-    document.body.append(cap);
+    mount(cap);
     rail = cap.querySelector(".pc-flows__rail");
     list = cap.querySelector(".pc-flows__list");
     cfg.flows.forEach((f) => {
@@ -236,8 +249,15 @@
     frame.className = "pc-device";
     frame.title = cfg.title;
     frame.src = `${location.pathname}?${q}`;
-    document.body.append(frame);
-    frame.addEventListener("load", () => frame.focus());
+    mount(frame);
+    frame.addEventListener("load", () => { syncTouch(); frame.focus(); });
+    // Tablet / Mobile = a touch device: no classic scrollbar eating the screen width (html.pc-touch inside the frame;
+    // the embed also reads frame[data-pc-touch] at init, so it's right from the first paint and after its own reloads)
+    const syncTouch = () => {
+      const touch = device !== "desktop";
+      frame.dataset.pcTouch = touch ? "1" : "";
+      try { frame.contentDocument?.documentElement.classList.toggle("pc-touch", touch); } catch {}
+    };
 
     // Resizable frame (Chrome responsive mode): stays centred → grows both sides (delta × 2 ÷ scale)
     const SIZE_MIN = [320, 480], SIZE_MAX = [2560, 1600], PAD_X = 80, PAD_Y = 56;
@@ -247,7 +267,7 @@
     const resizer = document.createElement("div");
     resizer.className = "pc-resizer";
     resizer.innerHTML = '<div class="pc-resizer__h pc-resizer__h--r" data-axis="x"><i></i></div><div class="pc-resizer__h pc-resizer__h--b" data-axis="y"><i></i></div><div class="pc-resizer__h pc-resizer__h--rb" data-axis="xy"></div><div class="pc-resizer__size"></div>';
-    document.body.append(resizer);
+    mount(resizer);
     const sizeLabel = resizer.querySelector(".pc-resizer__size");
     const writeUrl = () => {
       const u = new URLSearchParams(location.search);
@@ -370,6 +390,7 @@
       device = d;
       rows.querySelectorAll(".pc-dsizes__row").forEach((r) => r.classList.toggle("is-current", r.dataset.device === d));
       cap.querySelectorAll(".pc-btn[data-device]").forEach((b) => { b.classList.toggle("is-active", b.dataset.device === d); b.setAttribute("aria-pressed", String(b.dataset.device === d)); });
+      syncTouch();
       writeUrl();
       fit();
       frame.focus();
@@ -420,7 +441,7 @@
     hintEl.className = "pc-hint pc-hideable";
     hintEl.setAttribute("aria-live", "polite");
     hintEl.innerHTML = '<p class="pc-hint__title"></p><p class="pc-hint__text"></p><ul class="pc-hint__rows"></ul>';
-    document.body.append(hintEl);
+    mount(hintEl);
     hintEl.addEventListener("mousedown", (e) => e.target.closest(".pc-hint__value") && e.preventDefault());
     hintEl.addEventListener("click", (e) => {
       const btn = e.target.closest(".pc-hint__value");
@@ -483,7 +504,7 @@
       toastEl = document.createElement("div");
       toastEl.className = "pc-toast";
       toastEl.setAttribute("role", "status");
-      document.body.append(toastEl);
+      mount(toastEl);
     }
     toastEl.textContent = msg;
     toastEl.getBoundingClientRect();   // start from the hidden state when it's brand new
@@ -502,6 +523,7 @@
       };
       isEmbed = cfg.mode === "web" && (params.has("embed") || window !== window.top);
       html.classList.toggle("pc-embed", isEmbed);
+      try { if (isEmbed && window.frameElement?.dataset.pcTouch === "1") html.classList.add("pc-touch"); } catch {}
       // ⌘\ / Ctrl+\ — Figma's "Show/Hide UI"; unused by browsers / macOS, types nothing
       addEventListener("keydown", (e) => {
         if (!((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.code === "Backslash")) return;
@@ -522,6 +544,7 @@
       } else {
         const frameEl = typeof cfg.frame === "string" ? document.querySelector(cfg.frame) : cfg.frame;
         frameEl?.setAttribute("data-inspector-frame", "");   // the local inspector puts its card beside the phone
+        frameEl?.classList.add("pc-touch");   // a phone: no classic scrollbars inside it
         hintAnchor = frameEl;
         buildHint();
         buildCapsule(false);

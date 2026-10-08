@@ -123,6 +123,9 @@
   if (!isTop) toggle.style.display = 'none';   // device iframe: the outer page has the pill
   // On <html>, outside <body>: pages may hide body children (device mode does)
   document.documentElement.appendChild(host);
+  // Like the prototype chrome's layers: if a page re-render removes it from <html>, put it back
+  new MutationObserver(() => { if (!host.isConnected) document.documentElement.appendChild(host); })
+    .observe(document.documentElement, { childList: true });
 
   // Freezes transitions while a state is forced / snapshotted, so values are final at once
   const freezeCss = document.createElement('style');

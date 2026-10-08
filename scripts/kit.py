@@ -30,7 +30,7 @@ T_PR = os.path.join(KIT, "templates", "prototype")
 T_RE = os.path.join(KIT, "templates", "react")
 RULES_SRC = os.path.join(KIT, "reference", "kit-rules.md")
 # Bump when reference/kit-rules.md changes: every teammate's installed block is then refreshed on next use.
-RULES_VERSION = 5
+RULES_VERSION = 6
 
 
 def say(msg):

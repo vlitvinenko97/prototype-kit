@@ -18,6 +18,9 @@ The `prototype-kit` skill (`~/.claude/skills/prototype-kit/`) provides the proto
   never a hand-made toast.
 - Demo hints beside the device (prototype rules the viewer can't guess: registered vs new email, right vs wrong code)
   always use the kit's hint card: `hints` in `ProtoChrome.init` / `ProtoChrome.hint(def)` — never a hand-made card.
+- The prototype must also run with the kit removed: call it through the template's no-op fallback
+  (`const ProtoChrome = window.ProtoChrome ?? {…}` in `app.js`; `window.ProtoChrome?.…` in React / Vue) and never make
+  project styles or scripts depend on kit classes (`pc-*`, `chrome-hidden`).
 - Never edit the kit folder itself; project tweaks stay in the project. A change for everyone = a merge request to the
   kit's git repository (see the kit's README), merged by its owner. Update the kit with `git pull`.
 

@@ -61,7 +61,7 @@ run `python3 ~/.claude/skills/prototype-kit/scripts/kit.py vite <project>` (copi
 the inspector plugin + `inspector.js` to the project root; no `serve.py`), then do the wiring it prints — details and
 port gotchas in `reference/chrome.md` → "React / Vite"; dev server in `reference/server.md` → "Vite". Same command updates the kit files later.
 
-**Plain HTML/JS prototype:** Copy `proto-chrome.js/.css` into it, include them before the app's script, call `ProtoChrome.init({...})` before the router boots (web: `if (pc.isHost) return;` — the top page is only the stage), call `ProtoChrome.screen(id)` from the router, mark extra chrome with `.pc-hideable`. Make sure all asset paths are relative. Inspector: add `serve.py` + `inspector.js` at the served root (never into the prototype).
+**Plain HTML/JS prototype:** Copy `proto-chrome.js/.css` into it, include them before the app's script, call `ProtoChrome.init({...})` before the router boots (web: `if (pc.isHost) return;` — the top page is only the stage), call `ProtoChrome.screen(id)` from the router, mark extra chrome with `.pc-hideable`. Keep the no-op fallback from the template's `app.js` (`const ProtoChrome = window.ProtoChrome ?? {…}`) — the prototype must run with the kit removed (`reference/chrome.md` → "Works without the kit"). Make sure all asset paths are relative. Inspector: add `serve.py` + `inspector.js` at the served root (never into the prototype).
 
 ## Updating projects from the kit
 `kit.py update-chrome <prototype-dir>` / `kit.py update-tools <workspace>` / `kit.py vite <project>` (Vite) overwrite with the kit's current versions — check for local edits first (diff) and tell the user.

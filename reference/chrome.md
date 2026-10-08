@@ -30,9 +30,9 @@ Same module, no React port.
    `src/proto-chrome.d.ts` (types for `window.ProtoChrome`), `vite-inspector.ts` + `inspector.js` at the project root.
 2. `index.html`: `<link rel="stylesheet" href="/proto-chrome.css">` in `<head>`; `<script src="/proto-chrome.js"></script>`
    (classic) **before** `<script type="module" src="/src/main.tsx">`.
-3. `main.tsx`: `const pc = window.ProtoChrome.init({...}); if (!pc.isHost) createRoot(...).render(<App/>)` — the host page
+3. `main.tsx`: `const pc = window.ProtoChrome?.init({...}); if (!pc?.isHost) createRoot(...).render(<App/>)` — the host page
    mounts nothing (`.pc-host body` isn't rendered anyway). Flows list lives in this init.
-4. Router: `window.ProtoChrome.screen(id)` in an effect on the current screen.
+4. Router: `window.ProtoChrome?.screen(id)` in an effect on the current screen (always `?.` — see "Works without the kit").
 5. `vite.config`: `plugins: [react(), inspector("./inspector.js")]` (see `inspector.md`); add `vite-inspector.ts` to
    `tsconfig.node.json` "include" if it lists files.
 6. Check: `dist/` has `proto-chrome.*` and no `inspector.js` / `<script src="/inspector.js">` (the chrome only mentions it in comments); dev page shows capsule + device switcher + Inspect pill,
@@ -101,6 +101,16 @@ if (pc.isHost) {
 }
 ```
 
+
+## Works without the kit (2026-10-08)
+
+The prototype must keep working when the kit is removed (`proto-chrome.*` deleted, e.g. code handed to a client): the
+app never assumes the module is loaded. Plain JS: the template's `app.js` starts with a local
+`const ProtoChrome = window.ProtoChrome ?? { no-op stand-in }`, so `init()` returns `{ isHost: false }` and
+`screen` / `toast` / `hint` / `toggle` do nothing. React / Vue: `window.ProtoChrome?.…` (the type is optional).
+Without the kit you only lose the kit's own parts (capsule, devices, toasts, hints); no project style or script may
+depend on kit classes (`pc-*`, `chrome-hidden`). Check: open the prototype with `proto-chrome.*` removed on a plain
+`python3 -m http.server` — no console errors, every flow point's URL still opens its screen.
 
 ## What it does
 

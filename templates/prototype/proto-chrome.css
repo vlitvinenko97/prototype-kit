@@ -134,15 +134,23 @@
 .pc-dsizes__reset:hover { color: rgba(255, 255, 255, 0.85); }
 
 /* ============ Web stage: the page is only chrome + the prototype in one iframe ============ */
-html.pc-host { overflow: hidden; scrollbar-gutter: auto; }
-.pc-host body { margin: 0; background: var(--pc-stage); }
-.pc-host body > :not(.pc-chrome):not(.pc-device):not(.pc-resizer):not(.pc-hint) { display: none !important; }
+/* The stage's layers are on <html> (proto-chrome.js mount()), so the prototype's own body is simply not rendered here */
+html.pc-host { overflow: hidden; scrollbar-gutter: auto; background: var(--pc-stage); }
+html.pc-host body { display: none !important; }
 .pc-embed .pc-chrome { display: none; }
-.pc-device { position: absolute; border: 0; border-radius: 16px; background: #fff; transform-origin: 0 0; }
+.pc-device { position: fixed; border: 0; border-radius: 16px; background: #fff; transform-origin: 0 0; }
 .pc-fill .pc-device { position: fixed; left: 0; top: 0; width: 100%; height: 100%; border-radius: 0; }
 
+/* Touch devices — web Tablet / Mobile frames (html.pc-touch inside the iframe) and the mobile phone (.pc-touch on the
+   device element): no classic scrollbars. With "Always show scrollbars" (macOS) or a mouse plugged in they took ~15px
+   of the screen width and the layout no longer matched the device; a real phone / tablet never reserves that space.
+   Scrolling (wheel, trackpad, drag) still works. !important: a prototype's own scrollbar styling must not bring it back. */
+html.pc-touch, html.pc-touch *, .pc-touch, .pc-touch * { scrollbar-width: none !important; }
+html.pc-touch { scrollbar-gutter: auto !important; }
+html.pc-touch ::-webkit-scrollbar, .pc-touch::-webkit-scrollbar, .pc-touch ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
 /* Resizable frame: grips outside the right / bottom edges + corner, size label above (hover / drag) */
-.pc-resizer { position: absolute; z-index: 90; pointer-events: none; transition: opacity var(--pc-dur-fast) var(--pc-ease-fast); }
+.pc-resizer { position: fixed; z-index: 2147483000; pointer-events: none; transition: opacity var(--pc-dur-fast) var(--pc-ease-fast); }
 .pc-fill .pc-resizer, html:not(.pc-host) .pc-resizer { display: none; }
 .pc-resizer__h { position: absolute; pointer-events: auto; display: grid; place-items: center; touch-action: none; }
 .pc-resizer__h--r { left: 100%; top: 0; bottom: 0; width: 24px; cursor: ew-resize; }
@@ -179,7 +187,7 @@ html.pc-host { overflow: hidden; scrollbar-gutter: auto; }
    (gradient / rims / shadow read as a shadow); SF system font; groups separated by spacing only; text-wrap: pretty so
    no line ends with a single orphan word; value = soft grey pill on its own line (tap fills the field). */
 .pc-hint {
-  position: fixed; z-index: 100; box-sizing: border-box; width: 300px; margin: 0;
+  position: fixed; z-index: 2147483000; box-sizing: border-box; width: 300px; margin: 0;
   padding: 22px 28px; border-radius: 16px;
   background: #fafafa; border: 1.5px solid #fff; color: #111;
   font: 14px/19px -apple-system, "SF Pro Text", system-ui, sans-serif;
@@ -216,7 +224,7 @@ html.pc-host { overflow: hidden; scrollbar-gutter: auto; }
   position: fixed; left: 50%; top: 20px; z-index: 2147483000;
   width: max-content; max-width: calc(100% - 80px);
   padding: 10px 16px; border-radius: 12px;
-  background: #1c1c1e; color: #fff; font-size: 13px; line-height: 18px;
+  background: #1c1c1e; color: #fff; font: 13px/18px -apple-system, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased;
   text-align: center; text-wrap: balance;
   opacity: 0; transform: translate(-50%, -12px); pointer-events: none;
   transition: opacity var(--pc-dur-moderate-exit) var(--pc-ease-moderate-exit), transform var(--pc-dur-moderate-exit) var(--pc-ease-moderate-exit);

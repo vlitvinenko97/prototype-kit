@@ -31,7 +31,7 @@ Same module, no React port.
 2. `index.html`: `<link rel="stylesheet" href="/proto-chrome.css">` in `<head>`; `<script src="/proto-chrome.js"></script>`
    (classic) **before** `<script type="module" src="/src/main.tsx">`.
 3. `main.tsx`: `const pc = window.ProtoChrome.init({...}); if (!pc.isHost) createRoot(...).render(<App/>)` — the host page
-   mounts nothing (`.pc-host body > :not(.pc-…)` hides `#root` anyway). Flows list lives in this init.
+   mounts nothing (`.pc-host body` isn't rendered anyway). Flows list lives in this init.
 4. Router: `window.ProtoChrome.screen(id)` in an effect on the current screen.
 5. `vite.config`: `plugins: [react(), inspector("./inspector.js")]` (see `inspector.md`); add `vite-inspector.ts` to
    `tsconfig.node.json` "include" if it lists files.
@@ -112,12 +112,16 @@ if (pc.isHost) {
 
 **Flow starting points** — Notion-style rail of short lines (16×2, sub-points 10px indented), active line dark. Hover / focus → dense dark-glass list (`rgba(20,20,20,.94)` + `blur(40)`, radius 16, 232px) covering the rail; "Flow starting points" header; active item white 500. A point = fresh load with `?screen=<id>` + its params (keeps `?device`, `?size`, `?motion`) — except one-page prototypes, where a point scrolls to its section (see "One-page flows"). Light the current point from the router (`ProtoChrome.screen`).
 
-**Web only — the stage:** the top page shows the prototype in ONE iframe (`?embed=1`, same URL); the top page renders nothing else (`.pc-host body > :not(.pc-…)` hidden). Inside the iframe (`pc-embed`) there's no chrome; its `screen()` posts to the stage.
+**Web only — the stage:** the top page shows the prototype in ONE iframe (`?embed=1`, same URL); the top page renders nothing else (`html.pc-host body` is `display: none`; the stage's layers sit on `<html>`). Inside the iframe (`pc-embed`) there's no chrome; its `screen()` posts to the stage.
 - **Devices** Desktop / Tablet / Mobile (24px icons, stroke 1 in a 16 viewBox, 32px round buttons under the rail, divider above). Active = solid white disc + dark icon on light glass; on dark glass a translucent light plate (white 22% + faint rim) with a white icon — never a solid white disc there. Switching **only resizes the iframe — no reload, the state stays**; `?device` in the URL via replaceState.
 - **Default sizes** — sliders button under the devices; panel opens **on hover** (focus-within keeps it while typing; Esc blurs) over the capsule's bottom: W × H per device, **empty side = Fill** (takes the stage's room at 100%: window − 80px sides / 56px top-bottom). Defaults: Desktop Fill × Fill (= iframe fills the whole window, no frame), Tablet 768 × Fill, Mobile 375 × 812. Live apply; bad values red, reverted on blur; "Reset to defaults". localStorage, overrides only. Limits 320×480 … 2560×1600.
 - **Scale**: a framed device is always shown at the scale that fits the window, never above 100%.
 - **Resizable frame** (Chrome responsive mode): grips outside the right / bottom edge + corner; the frame stays centred so it grows on both sides (Δ×2 ÷ scale at drag start); past the window it zooms out live; label above the frame on hover/drag `W × H` (+ ` · N%` when scaled). Custom size `?size=WxH` (`fill` for a Fill side; dragging one axis keeps the other's Fill). Active device again / another device / double-click a grip → preset.
 - **Click Effect** on the round buttons: press = swell 1.15 + white bloom + blurred icon; drag stretches toward the pointer (±4px, +12% along the axis); release springs back with a little bounce.
+
+**Chrome layers always on top** (2026-10-08): capsule, device iframe, resizer, hint and toast are appended to `<html>`, not `<body>` (like the inspector), all `position: fixed`, z-index 2147483000 (the inspector's 2147483647 stays above). Reason: a prototype's `body { transform | filter | contain | will-change }` turns body into the containing block of `position: fixed` — the capsule fell down under the layout — and a body re-render removed it. A MutationObserver on `<html>` re-appends a layer if something still removes it. Known limit: a prototype's own top-layer `<dialog>.showModal()` / popover in the page (mobile mode) still paints above everything.
+
+**Touch devices — no classic scrollbars** (2026-10-08): web Tablet / Mobile frames get `html.pc-touch` inside the iframe (set by the stage on load + on device switch; the embed also reads `frame[data-pc-touch]` at init), the mobile phone element gets `.pc-touch`. Under it every scrollbar is `scrollbar-width: none` + `::-webkit-scrollbar { display: none }` (`!important`). With macOS "Always show scrollbars" / a mouse connected a classic scrollbar took ~15px of the device width — a real phone / tablet never does. Desktop keeps the system scrollbar.
 
 **Mobile** — the phone is in the page (`#device`, grey stage `#cbcbcb`, 10px bezel, no drop shadow, scaled to fit). No device switcher. The capsule gets the same glass/tone behaviour.
 

@@ -80,7 +80,7 @@
   /* Liquid glass pill: flat frosted glass at
      rest, depth (.over: dark inner edges + shadow) only while page content is under it; press swells it
      (white bloom, blurred label) and it stretches toward the pointer, release springs back. */
-  .toggle { position: fixed; right: 16px; bottom: 16px; pointer-events: auto; display: flex; align-items: center; gap: 6px;
+  .toggle { position: fixed; right: calc(16px + var(--gutter, 0px)); bottom: 16px; pointer-events: auto; display: flex; align-items: center; gap: 6px;
             height: 32px; padding: 0 12px; border: 0; border-radius: 300px; color: rgba(0,0,0,.75);
             background: rgba(236,236,236,.5); -webkit-backdrop-filter: blur(12px) saturate(160%); backdrop-filter: blur(12px) saturate(160%);
             --rim: inset 0 0 0 1px rgba(255,255,255,.9), inset 9px 9px 6.5px -7.5px #fff, inset 6px 9px 7px -6px #fff, inset -6px -6px 3px -6px #fff;
@@ -107,7 +107,7 @@
   .toggle { transition-property: box-shadow, background-color, color, transform, opacity; }
   .toggle kbd { font: 500 10px/1 ui-monospace, Menlo, monospace; padding: 2px 4px; border-radius: 4px; background: rgba(0,0,0,.07); }
   .toggle.on kbd { background: rgba(255,255,255,.22); }
-  .toast { position: fixed; right: 16px; bottom: 52px; padding: 6px 10px; border-radius: 6px; background: #1e1e1e; color: #fff;
+  .toast { position: fixed; right: calc(16px + var(--gutter, 0px)); bottom: 52px; padding: 6px 10px; border-radius: 6px; background: #1e1e1e; color: #fff;
            font: 12px/16px -apple-system, system-ui, sans-serif; }
 </style>
 <div class="shield" hidden></div>
@@ -821,7 +821,20 @@
     const l = sum / n;
     return l < 0.2 ? true : l > 0.3 ? false : was;   // ~ #7c7c7c … #959595 hysteresis band
   }
+  // A full-window device iframe (web Desktop) scrolls itself: its classic scrollbar sits on the window's right edge,
+  // where the top page's own `right: 16px` doesn't see it → shift the pill (and toast) left by that scrollbar's width
+  function rightGutter() {
+    let g = 0;
+    for (const f of document.querySelectorAll('iframe')) {
+      const r = f.getBoundingClientRect();
+      if (Math.abs(r.right - innerWidth) > 1 || r.bottom < innerHeight - 1) continue;
+      try { g = Math.max(g, (f.clientWidth - f.contentDocument.documentElement.clientWidth) * (r.width / f.offsetWidth || 1)); }
+      catch { /* cross-origin */ }
+    }
+    return Math.max(0, Math.round(g));
+  }
   if (isTop) setInterval(() => {
+    host.style.setProperty('--gutter', rightGutter() + 'px');
     const r = toggle.getBoundingClientRect();
     let over = false;
     for (let y = r.top + 4; y < r.bottom - 2 && !over; y += 8)

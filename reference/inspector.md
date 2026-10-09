@@ -3,7 +3,7 @@
 Figma-style inspector for reviewing prototypes. **Local only**: `serve.py` injects `<script src="/inspector.js">` before `</body>` of every prototype page; it is never copied into a prototype folder, never `<script>`-ed from a prototype, never published with one.
 
 ## Features
-- `I` or the "Inspect" pill (bottom-right) toggles; remembered in sessionStorage. Off: `I` is handled in the bubble phase so an app's own `i` shortcut (preventDefault) wins.
+- `I` or the "Inspect" pill (bottom-right; shifted left by the width of a full-window device iframe's classic scrollbar, so it never covers it) toggles; remembered in sessionStorage. Off: `I` is handled in the bubble phase so an app's own `i` shortcut (preventDefault) wins.
 - Hover = box model overlay + card: size, layout, padding/margin, rendered font, size/LH, letter-spacing, colours with their `:root` token names, border, radius, shadow. Click pins (click a value to copy). Alt+hover = distance lines. Enter / ⇧Enter = child / parent. Esc unpins.
 - **Pinned element stays in place on resize** (device switch, frame drag, window resize): the page reflows, so the inspector scrolls the pinned element back to the viewport top it had before (tracked on pin and on every scroll); if it was out of view, it comes in near the top (20% / max 120px). Not pinned → no scroll correction.
 - **States**: a pinned element gets tabs Default · Hover · Pressed · Focus (keys 1–4), only states whose CSS changes something. Every `:hover/:active/:focus*` rule gets a twin with the pseudo turned into a class (`.__ins-hover`…), tracked per rule and rescanned on each pin (works with CSS-in-JS / HMR). Forced classes are guarded by a MutationObserver (React/Vue re-renders). Changed rows show "was …".

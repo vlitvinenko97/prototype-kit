@@ -267,6 +267,10 @@
     frame.title = cfg.title;
     frame.src = `${location.pathname}?${q}`;
     mount(frame);
+    // Safari paints the frame's initial about:blank document white although it's transparent (Chrome shows the
+    // frame's background through it) — ~1 s of white while the prototype's page loads. Paint that document itself;
+    // the prototype's page replaces it.
+    if (pageBg) try { Object.assign(frame.contentDocument.documentElement.style, { background: pageBg, colorScheme: getComputedStyle(frame).colorScheme }); } catch {}
     frame.addEventListener("load", () => { syncTouch(); frame.focus(); });
     // Tablet / Mobile = a touch device: no classic scrollbar eating the screen width (html.pc-touch inside the frame;
     // the embed also reads frame[data-pc-touch] at init, so it's right from the first paint and after its own reloads)

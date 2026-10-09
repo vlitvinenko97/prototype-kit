@@ -100,6 +100,7 @@
   .toggle.on { background: linear-gradient(135deg, rgba(160,218,198,.9), rgba(92,158,138,.9)); color: #fff; text-shadow: 0 1px 1px rgba(30,80,66,.25);   /* fresh mint glass */
                --rim: inset 0 0 0 1px rgba(255,255,255,.45), inset 9px 9px 6.5px -7.5px rgba(255,255,255,.7), inset 6px 9px 7px -6px rgba(255,255,255,.6), inset -6px -6px 3px -6px rgba(255,255,255,.7); }
   .toggle > * { transition: filter .12s ease-out; }
+  .toggle.instant, .toggle.instant > * { transition: none !important; }
   .toggle.pressed { background: radial-gradient(ellipse at 50% 50%, #fff 0 30%, rgba(255,255,255,.6) 75%, rgba(255,255,255,.9) 100%); color: rgba(0,0,0,.75);
                     transition: transform .16s ease-out, box-shadow .16s ease-out; }
   .toggle.pressed .lbl, .toggle.pressed kbd { filter: blur(1.2px); }
@@ -775,22 +776,23 @@
   // Adaptive tone (like Apple's Liquid Glass): the glass reads how light the backdrop
   // under it is and flips to its dark appearance on dark backdrops. Per point: the background layers under
   // it (topmost first, through the device iframe) are composited down to the first opaque one; media
-  // (img / video / canvas) is unknown and doesn't vote. Average relative luminance with hysteresis.
+  // (img / video / canvas) is unknown and doesn't vote. An embed with nothing painted yet shows the frame's
+  // own background (the chrome paints it with the page's), not white. Average relative luminance with hysteresis.
   function rgbaOf(c) {
     const m = /rgba?\(([^)]+)\)/.exec(c);
     if (!m) return null;
     const [r, g, b, a = 1] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
     return [r, g, b, a];
   }
-  function backdropAt(doc, x, y, skip) {
+  function backdropAt(doc, x, y, skip, base = [255, 255, 255]) {
     const layers = [];
     for (const e of doc.elementsFromPoint(x, y)) {
       if (skip && skip.contains(e)) continue;
       if (e.checkVisibility && !e.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
       if (e.tagName === 'IFRAME') {
         try {
-          const r = e.getBoundingClientRect(), k = r.width / e.offsetWidth || 1;
-          const inner = backdropAt(e.contentDocument, (x - r.left) / k, (y - r.top) / k);
+          const r = e.getBoundingClientRect(), k = r.width / e.offsetWidth || 1, own = rgbaOf(getComputedStyle(e).backgroundColor);
+          const inner = backdropAt(e.contentDocument, (x - r.left) / k, (y - r.top) / k, null, own?.[3] >= 0.99 ? own.slice(0, 3) : undefined);
           if (!inner) return null;
           layers.push([...inner, 1]);
         } catch { return null; }
@@ -800,7 +802,7 @@
       const c = rgbaOf(getComputedStyle(e).backgroundColor);
       if (c && c[3] > 0) { layers.push(c); if (c[3] >= 0.99) break; }
     }
-    if (!layers.length || layers[layers.length - 1][3] < 0.99) layers.push([255, 255, 255, 1]);   // the canvas
+    if (!layers.length || layers[layers.length - 1][3] < 0.99) layers.push([...base, 1]);   // the canvas
     let [r, g, b] = layers.pop();
     while (layers.length) { const [lr, lg, lb, a] = layers.pop(); r = r * (1 - a) + lr * a; g = g * (1 - a) + lg * a; b = b * (1 - a) + lb * a; }
     return [r, g, b];
@@ -821,14 +823,21 @@
     const l = sum / n;
     return l < 0.2 ? true : l > 0.3 ? false : was;   // ~ #7c7c7c … #959595 hysteresis band
   }
-  if (isTop) setInterval(() => {
+  const tone = () => {
     const r = toggle.getBoundingClientRect();
     let over = false;
     for (let y = r.top + 4; y < r.bottom - 2 && !over; y += 8)
       for (let x = r.left + 4; x < r.right - 2 && !over; x += 8) over = contentAt(document, x, y);
     toggle.classList.toggle('over', over);
     toggle.classList.toggle('dark', darkUnder(toggle, host, toggle.classList.contains('dark')));
-  }, 150);
+  };
+  if (isTop) {
+    setInterval(tone, 150);
+    // the first tone is instant (the pill appears in it) — no light → dark fade on every load
+    toggle.classList.add('instant');
+    tone();
+    requestAnimationFrame(() => requestAnimationFrame(() => toggle.classList.remove('instant')));
+  }
   {
     let box = null;
     const set = (tx, ty, sx, sy) => Object.entries({ tx: tx + 'px', ty: ty + 'px', sx, sy }).forEach(([k, v]) => toggle.style.setProperty('--' + k, v));

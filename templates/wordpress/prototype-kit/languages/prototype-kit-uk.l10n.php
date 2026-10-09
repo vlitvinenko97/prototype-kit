@@ -1,0 +1,33 @@
+<?php
+// Ukrainian translation of the Prototype Kit plugin (WordPress 6.5+ PHP translation file).
+return array(
+	'domain'       => 'prototype-kit',
+	'language'     => 'uk',
+	'plural-forms' => 'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);',
+	'messages'     => array(
+		'Review tools of the prototype-kit on a WordPress site: the chrome (flow points, Desktop / Tablet / Mobile, ⌘\\ to hide, system toasts, demo hints) and the inspector. Environments: Settings → Prototype Kit (default: all but production).' => 'Інструменти рев\'ю з prototype-kit для сайтів на WordPress: панель (точки, пристрої Desktop/Tablet/Mobile, ⌘\\), системні тости, демо-підказки, інспектор. Середовища вмикаються в Налаштування → Prototype Kit (типово всі, крім production).',
+		'Section “%s” is not on this page — check the point in Settings → Prototype Kit' => 'Секцію «%s» не знайдено на цій сторінці — перевірте точку в Налаштування → Prototype Kit',
+		'Environments' => 'Середовища',
+		'The plugin works only in the ticked environments. This site: %s (the WP_ENVIRONMENT_TYPE constant in wp-config.php).' => 'Плагін працює лише в позначених середовищах. Це середовище: %s (константа WP_ENVIRONMENT_TYPE у wp-config.php).',
+		'current' => 'поточне',
+		'careful: every visitor of the live site would see the tools' => 'обережно: інструменти побачать усі відвідувачі живого сайту',
+		'Tools' => 'Інструменти',
+		'Panel: flow points, Desktop / Tablet / Mobile devices, ⌘\\ to hide, system toasts' => 'Панель: точки навігації, пристрої Desktop / Tablet / Mobile, ⌘\\ — сховати, системні тости',
+		'Inspector (key I): sizes, spacing, fonts, colours as in Figma' => 'Інспектор (клавіша I): розміри, відступи, шрифти, кольори як у Figma',
+		'Panel points' => 'Точки панелі',
+		'A point on the page that is open scrolls to its section without a reload; on another page it opens that page.' => 'Точка на тій самій сторінці прокручує до секції без перезавантаження; на іншій — відкриває ту сторінку.',
+		'These are the points the theme suggests. Change and save them to have your own list.' => 'Зараз — точки, які пропонує тема. Змініть і збережіть, щоб мати власний список.',
+		'No points — the panel shows the devices only. Add points below.' => 'Точок немає — у панелі лише пристрої. Додайте точки нижче.',
+		'Label' => 'Назва',
+		'Page (path on this site)' => 'Сторінка (адреса на сайті)',
+		'Section (block id, optional)' => 'Секція (id блоку, необовʼязково)',
+		'Sub-point' => 'Підпункт',
+		'Actions' => 'Дії',
+		'Add point' => 'Додати точку',
+		'Reset to the theme\'s points' => 'Скинути до точок теми',
+		'Page' => 'Сторінка',
+		'Section' => 'Секція',
+		'Remove' => 'Прибрати',
+		'Sub-point: shown indented under the point above it — for grouping, e.g. a page and its sections.' => 'Підпункт — показується з відступом під пунктом вище: щоб групувати, наприклад сторінку і її секції.',
+	),
+);

@@ -7,12 +7,14 @@
 
 The `prototype-kit` skill (`~/.claude/skills/prototype-kit/`) provides the prototype environment tools: the chrome panel
 (flow starting points, Desktop/Tablet/Mobile switcher, default sizes, resizable device frame, liquid-glass capsule,
-⌘\ / Ctrl+\ to hide, system toasts, demo hints), the inspector panel (Figma-style, key `I`) and the local dev server.
+⌘\ / Ctrl+\ to hide, system toasts, demo hints), the inspector panel (Figma-style, key `I`) and the local dev server;
+on WordPress sites both come as the Prototype Kit plugin.
 
 - **Reuse the kit — never re-implement it.** Whenever a prototype needs any of these tools — new prototype, React/Vue/Vite
-  project, or an old prototype carrying its own copy — load the skill and plug in the kit's files
-  (`kit.py new` / `update-chrome` / `vite`); never write or hand-port your own version.
-- The chrome ships with the prototype (it is deployed); the inspector never does (local dev only).
+  project, WordPress site, or an old prototype carrying its own copy — load the skill and plug in the kit's files
+  (`kit.py new` / `update-chrome` / `vite` / `wordpress`); never write or hand-port your own version.
+- The chrome ships with the prototype (it is deployed); the inspector never does (local dev only). WordPress: the
+  plugin's settings choose the environments (default all but production) — the inspector may run on staging there.
 - System messages about the prototype's limits ("isn't designed yet", "only page 1 is designed", "isn't part of the
   prototype") always use the kit's toast: `data-action="soon"` / `data-soon="…"` or `ProtoChrome.toast(msg)` —
   never a hand-made toast.

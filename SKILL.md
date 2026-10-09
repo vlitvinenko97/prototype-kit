@@ -38,6 +38,7 @@ aren't available: give the user the command to run in their own terminal (`pytho
 - `scripts/kit.py` — scaffolding (`init`, `new`, `update-chrome`, `update-tools`, `vite`) + `update-check` (newer kit in git?) + `onboard` (kit rules → `~/.claude/CLAUDE.md`). Never overwrites except `update-*` / the marked rules block.
 - `templates/workspace/` — `serve.py` (no-cache server, injects the inspector), `inspector.js`, `index.html` (local list), `CLAUDE.md`.
 - `templates/react/` — `vite-inspector.ts` (dev-only Vite plugin for the inspector), `proto-chrome.d.ts` (types); installed by `kit.py vite`.
+- `templates/wordpress/prototype-kit/` — the WordPress plugin's glue (PHP, settings screen, `boot.js` = init + points); `kit.py wordpress` adds the chrome + inspector into its `kit/`.
 - `templates/prototype/` — starter `index.web.html` / `index.mobile.html`, `styles.css`, `app.js` (chrome init + minimal router), `proto-chrome.js/.css`, `CLAUDE.md`. (No deploy setup — publishing is decided per project.)
 - `reference/` — read the relevant one before acting:
   - `chrome.md` — the panel: API, behaviour, rejected alternatives.
@@ -63,8 +64,14 @@ port gotchas in `reference/chrome.md` → "React / Vite"; dev server in `referen
 
 **Plain HTML/JS prototype:** Copy `proto-chrome.js/.css` into it, include them before the app's script, call `ProtoChrome.init({...})` before the router boots (web: `if (pc.isHost) return;` — the top page is only the stage), call `ProtoChrome.screen(id)` from the router, mark extra chrome with `.pc-hideable`. Keep the no-op fallback from the template's `app.js` (`const ProtoChrome = window.ProtoChrome ?? {…}`) — the prototype must run with the kit removed (`reference/chrome.md` → "Works without the kit"). Make sure all asset paths are relative. Inspector: add `serve.py` + `inspector.js` at the served root (never into the prototype).
 
+**WordPress site** (has `wp-content/`) → `python3 ~/.claude/skills/prototype-kit/scripts/kit.py wordpress <wp-content>`
+installs the **Prototype Kit plugin** (chrome + inspector + WP glue) — never copy `proto-chrome.*` into a theme or
+hand-write the init there. Then: activate it, set `WP_ENVIRONMENT_TYPE` in `wp-config.php`, configure environments /
+tools / points in Settings → Prototype Kit; the theme only reads `window.ProtoKitWP?.pc` and may use the filters.
+Details: `reference/chrome.md` → "WordPress". `--zip <file>` for servers without the kit.
+
 ## Updating projects from the kit
-`kit.py update-chrome <prototype-dir>` / `kit.py update-tools <workspace>` / `kit.py vite <project>` (Vite) overwrite with the kit's current versions — check for local edits first (diff) and tell the user.
+`kit.py update-chrome <prototype-dir>` / `kit.py update-tools <workspace>` / `kit.py vite <project>` (Vite) / `kit.py wordpress <wp-content>` (WordPress plugin) overwrite with the kit's current versions — check for local edits first (diff) and tell the user.
 
 ## Changing the kit
 The kit is distributed as a git repository (install / update / contributing: `README.md`); the repository is the only

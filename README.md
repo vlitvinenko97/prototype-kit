@@ -7,7 +7,7 @@ A Claude Code skill that sets up the environment tools for clickable prototypes 
 - **Inspector panel** (local dev only): Figma-style inspector, key `I`.
 - **Dev server**: no-cache `serve.py` for plain HTML prototypes; React / Vue projects use their Vite server + a plugin.
 
-Works for plain HTML/JS and React / Vue + Vite projects, web or mobile prototypes.
+Works for plain HTML/JS and React / Vue + Vite projects, web or mobile prototypes, and WordPress sites (as a plugin).
 
 ## Install
 
@@ -30,7 +30,7 @@ git -C ~/.claude/skills/prototype-kit pull --ff-only
 
 The skill also checks for a newer version on each use and offers the pull. After pulling, the rules block in
 `~/.claude/CLAUDE.md` refreshes on the next use; update a project's copies with `kit.py update-chrome <dir>`,
-`kit.py update-tools <workspace>` or `kit.py vite <project>`.
+`kit.py update-tools <workspace>`, `kit.py vite <project>` or `kit.py wordpress <wp-content>`.
 
 ## Changing the kit
 
@@ -46,8 +46,9 @@ The repository is the only source of truth; the kit's owner reviews and merges e
 | Path | What |
 |---|---|
 | `SKILL.md` | Instructions Claude follows |
-| `scripts/kit.py` | `new`, `init`, `update-chrome`, `update-tools`, `vite`, `onboard` |
+| `scripts/kit.py` | `new`, `init`, `update-chrome`, `update-tools`, `vite`, `wordpress`, `onboard` |
 | `templates/prototype/` | Starter prototype + `proto-chrome.js/.css` (the chrome) |
 | `templates/workspace/` | `serve.py`, `inspector.js`, local index, workspace `CLAUDE.md` |
 | `templates/react/` | Vite inspector plugin + `ProtoChrome` types |
+| `templates/wordpress/` | Prototype Kit plugin for WordPress (glue; `kit.py wordpress` adds the chrome + inspector) |
 | `reference/` | `chrome.md`, `inspector.md`, `server.md`, `kit-rules.md` |

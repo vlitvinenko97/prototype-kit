@@ -107,22 +107,23 @@
     return false;
   }
   // Adaptive tone (Apple Liquid Glass): background layers under each point composited down to the first
-  // opaque one (through iframes); media doesn't vote; mean relative luminance with hysteresis → .is-dark.
+  // opaque one (through iframes; an embed with nothing painted yet shows the frame's own background);
+  // media doesn't vote; mean relative luminance with hysteresis → .is-dark.
   function rgbaOf(c) {
     const m = /rgba?\(([^)]+)\)/.exec(c);
     if (!m) return null;
     const [r, g, b, a = 1] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
     return [r, g, b, a];
   }
-  function backdropAt(doc, x, y, skip) {
+  function backdropAt(doc, x, y, skip, base = [255, 255, 255]) {
     const layers = [];
     for (const e of doc.elementsFromPoint(x, y)) {
       if (skip && skip.contains(e)) continue;
       if (e.checkVisibility && !e.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
       if (e.tagName === "IFRAME") {
         try {
-          const r = e.getBoundingClientRect(), k = r.width / e.offsetWidth || 1;
-          const inner = backdropAt(e.contentDocument, (x - r.left) / k, (y - r.top) / k);
+          const r = e.getBoundingClientRect(), k = r.width / e.offsetWidth || 1, own = rgbaOf(getComputedStyle(e).backgroundColor);
+          const inner = backdropAt(e.contentDocument, (x - r.left) / k, (y - r.top) / k, null, own?.[3] >= 0.99 ? own.slice(0, 3) : undefined);
           if (!inner) return null;
           layers.push([...inner, 1]);
         } catch { return null; }
@@ -132,7 +133,7 @@
       const c = rgbaOf(getComputedStyle(e).backgroundColor);
       if (c && c[3] > 0) { layers.push(c); if (c[3] >= 0.99) break; }
     }
-    if (!layers.length || layers[layers.length - 1][3] < 0.99) layers.push([255, 255, 255, 1]);
+    if (!layers.length || layers[layers.length - 1][3] < 0.99) layers.push([...base, 1]);
     let [r, g, b] = layers.pop();
     while (layers.length) { const [lr, lg, lb, a] = layers.pop(); r = r * (1 - a) + lr * a; g = g * (1 - a) + lg * a; b = b * (1 - a) + lb * a; }
     return [r, g, b];
@@ -231,7 +232,19 @@
     return cap;
   }
 
+  // The page's own background (body, else html), read before it becomes the stage (same page, same CSS as the embed):
+  // the device frame shows it while the embed loads — no white flash before the first paint. null = transparent → white.
+  function pageBackground() {
+    for (const el of [document.body, html]) {   // body paints over html when both are set
+      const c = el && rgbaOf(getComputedStyle(el).backgroundColor);
+      if (c?.[3] >= 0.99) return `rgb(${c.slice(0, 3).join(", ")})`;
+    }
+    return null;
+  }
+
   function initWebHost(cap) {
+    const pageBg = pageBackground();
+    if (pageBg) html.style.setProperty("--pc-device-bg", pageBg);   // on <html>: Fill resets the frame's inline style
     html.classList.add("pc-host");
     const SIZES_KEY = `${cfg.id}:device-sizes`;
     const DEFAULTS = cfg.devices;

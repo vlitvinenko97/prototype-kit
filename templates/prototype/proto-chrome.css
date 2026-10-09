@@ -138,7 +138,7 @@
 html.pc-host { overflow: hidden; scrollbar-gutter: auto; background: var(--pc-stage); }
 html.pc-host body { display: none !important; }
 .pc-embed .pc-chrome { display: none; }
-.pc-device { position: fixed; border: 0; border-radius: 16px; background: #fff; transform-origin: 0 0; }
+.pc-device { position: fixed; border: 0; border-radius: 16px; background: var(--pc-device-bg, #fff); transform-origin: 0 0; }   /* the page's own background (proto-chrome.js) */
 .pc-fill .pc-device { position: fixed; left: 0; top: 0; width: 100%; height: 100%; border-radius: 0; }
 
 /* Touch devices — web Tablet / Mobile frames (html.pc-touch inside the iframe) and the mobile phone (.pc-touch on the

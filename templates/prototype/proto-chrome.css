@@ -176,6 +176,9 @@ html.pc-touch ::-webkit-scrollbar, .pc-touch::-webkit-scrollbar, .pc-touch ::-we
 .pc-resizing-y, .pc-resizing-y * { cursor: ns-resize !important; }
 .pc-resizing-xy, .pc-resizing-xy * { cursor: nwse-resize !important; }
 
+/* the glass's first tone is applied without a fade (glassWatch in proto-chrome.js) */
+.pc-instant, .pc-instant * { transition: none !important; }
+
 /* ⌘\ / Ctrl+\ hides the chrome (html.chrome-hidden). Mark other chrome (demo hints…) with .pc-hideable */
 .chrome-hidden .pc-chrome, .chrome-hidden .pc-resizer, .chrome-hidden .pc-hideable {
   opacity: 0 !important; pointer-events: none !important;

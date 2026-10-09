@@ -154,7 +154,11 @@
       if (n) { const l = sum / n; if (l < 0.2) el.classList.add("is-dark"); else if (l > 0.3) el.classList.remove("is-dark"); }
     };
     setInterval(check, 150);   // no document.hidden check: the review pane reports hidden while visible
+    // The first tone is instant (the capsule appears in it): check() reads layout, so the light style is already
+    // computed when .is-dark lands — without this the capsule fades light → dark on every load.
+    el.classList.add("pc-instant");
     check();
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove("pc-instant")));
   }
   // Click Effect: press swells (1.15, white bloom, blurred icon), dragging stretches toward the pointer,
   // release springs back on the slow (bouncy) tier.

@@ -9,6 +9,10 @@
   kit.py vite <project>                         React / Vue + Vite project: install / update the kit's files
                                                 (public/proto-chrome.*, src/proto-chrome.d.ts, vite-inspector.ts,
                                                 inspector.js) and print the wiring steps
+  kit.py wordpress <wp-content>                 WordPress site: install / update the Prototype Kit plugin
+                                                (wp-content/plugins/prototype-kit/ = the WP glue + the kit's chrome
+                                                and inspector in kit/) and print the next steps
+  kit.py wordpress --zip <file.zip>             the same plugin as a zip (upload in wp-admin → Plugins → Add new)
   kit.py update-check                           is a newer kit version in its git repository? (fetch + compare;
                                                 skipped when the kit isn't a git checkout or offline)
   kit.py onboard [--check] [--target PATH]      install / update the kit rules (reference/kit-rules.md) in
@@ -22,15 +26,18 @@ import json
 import os
 import re
 import shutil
+import subprocess
+import tempfile
 import sys
 
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 T_WS = os.path.join(KIT, "templates", "workspace")
 T_PR = os.path.join(KIT, "templates", "prototype")
 T_RE = os.path.join(KIT, "templates", "react")
+T_WP = os.path.join(KIT, "templates", "wordpress", "prototype-kit")
 RULES_SRC = os.path.join(KIT, "reference", "kit-rules.md")
 # Bump when reference/kit-rules.md changes: every teammate's installed block is then refreshed on next use.
-RULES_VERSION = 6
+RULES_VERSION = 7
 
 
 def say(msg):
@@ -149,6 +156,66 @@ def vite(project):
     say(VITE_STEPS)
 
 
+WP_STEPS = """
+Next (see reference/chrome.md → "WordPress"):
+  wp-admin     Plugins → activate "Prototype Kit"; Settings → Prototype Kit: environments (default: all but
+               production), tools, the panel's points (page + section)
+  wp-config    define( 'WP_ENVIRONMENT_TYPE', 'local' );   (staging / production on the other servers)
+  theme        optional: filter prototype_kit_config (id, devices, hints), prototype_kit_points (suggested points);
+               in JS: window.ProtoKitWP?.pc (pc.isHost = the stage page: boot nothing), window.ProtoChrome ?? no-op
+"""
+
+
+def kit_rev():
+    try:
+        return subprocess.run(["git", "-C", KIT, "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                              check=True).stdout.strip() or "unknown"
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
+
+
+def build_wp_plugin(dest):
+    """The plugin folder = templates/wordpress/prototype-kit + the kit's chrome / inspector in kit/ + the kit version."""
+    rev = kit_rev()
+    shutil.copytree(T_WP, dest, dirs_exist_ok=True)
+    os.makedirs(os.path.join(dest, "kit"), exist_ok=True)
+    for src in (os.path.join(T_PR, "proto-chrome.js"), os.path.join(T_PR, "proto-chrome.css"),
+                os.path.join(T_WS, "inspector.js")):
+        shutil.copyfile(src, os.path.join(dest, "kit", os.path.basename(src)))
+    with open(os.path.join(dest, "kit", "KIT_VERSION"), "w") as f:
+        f.write(f"prototype-kit {rev}\n")
+    # asset version = plugin version + kit commit: browsers drop cached chrome / inspector after an update
+    main_php = os.path.join(dest, "prototype-kit.php")
+    with open(main_php) as f:
+        code = f.read()
+    code = re.sub(r"(define\( 'PROTOTYPE_KIT_VERSION', ')([^']+)(' \);)", lambda m: f"{m.group(1)}{m.group(2).split('+')[0]}+{rev}{m.group(3)}", code)
+    with open(main_php, "w") as f:
+        f.write(code)
+    return rev
+
+
+def wordpress(target, zip_path):
+    if zip_path:
+        with tempfile.TemporaryDirectory() as tmp:
+            rev = build_wp_plugin(os.path.join(tmp, "prototype-kit"))
+            out = shutil.make_archive(os.path.splitext(os.path.abspath(zip_path))[0], "zip", tmp, "prototype-kit")
+        say(f"  zip    {out} (prototype-kit {rev})")
+        return
+    if not target:
+        sys.exit("kit.py wordpress <wp-content> | --zip <file.zip>")
+    # accepts the WordPress root, wp-content or wp-content/plugins
+    for plugins in (os.path.join(target, "wp-content", "plugins"), os.path.join(target, "plugins"), target):
+        if os.path.isdir(plugins) and os.path.basename(os.path.normpath(plugins)) == "plugins":
+            break
+    else:
+        sys.exit(f"{target}: no wp-content/plugins here — pass the WordPress root or its wp-content")
+    dest = os.path.join(plugins, "prototype-kit")
+    action = "update" if os.path.exists(dest) else "add   "
+    rev = build_wp_plugin(dest)
+    say(f"  {action} {dest} (prototype-kit {rev})")
+    say(WP_STEPS)
+
+
 def update_check():
     import subprocess
     git = lambda *a: subprocess.run(["git", "-C", KIT, *a], capture_output=True, text=True, timeout=15)
@@ -205,6 +272,7 @@ def main():
     a = sub.add_parser("update-chrome"); a.add_argument("prototype")
     a = sub.add_parser("update-tools"); a.add_argument("workspace")
     a = sub.add_parser("vite"); a.add_argument("project")
+    a = sub.add_parser("wordpress"); a.add_argument("target", nargs="?"); a.add_argument("--zip", default="")
     sub.add_parser("update-check")
     a = sub.add_parser("onboard"); a.add_argument("--check", action="store_true")
     a.add_argument("--target", default=os.path.expanduser("~/.claude/CLAUDE.md"))
@@ -218,6 +286,8 @@ def main():
             force_copy(os.path.join(T_PR, f), os.path.join(args.prototype, f))
     elif args.cmd == "vite":
         vite(args.project)
+    elif args.cmd == "wordpress":
+        wordpress(args.target, args.zip)
     elif args.cmd == "update-check":
         update_check()
     elif args.cmd == "onboard":

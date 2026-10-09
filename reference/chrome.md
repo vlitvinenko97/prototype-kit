@@ -38,6 +38,31 @@ Same module, no React port.
 6. Check: `dist/` has `proto-chrome.*` and no `inspector.js` / `<script src="/inspector.js">` (the chrome only mentions it in comments); dev page shows capsule + device switcher + Inspect pill,
    ⌘\ hides, switching device keeps the app state, inspector works inside the iframe.
 
+## WordPress
+Same modules, packaged as a plugin: `python3 ~/.claude/skills/prototype-kit/scripts/kit.py wordpress <wp-content>`
+→ `wp-content/plugins/prototype-kit/` = the WP glue (`templates/wordpress/prototype-kit/`) + the kit's
+`proto-chrome.js/.css` and `inspector.js` in `kit/` (never edit them there — they're overwritten on the next run;
+a fix for everyone goes into the kit). Same command updates it; `--zip <file>` builds the plugin as a zip for servers
+without the kit (wp-admin → Plugins → Add new → Upload).
+- **Settings → Prototype Kit**: environments (`wp_get_environment_type()`; default all but production — production
+  only on purpose, every visitor would see the tools), tools on / off (chrome, inspector), the panel's points:
+  label, page (a path on the site), section (an element id, optional), sub-point.
+- **Points**: a point on the page that's open scrolls to its section, never reloads (the "One-page flows" behaviour,
+  built in); a point on another page opens it, keeps `?device` / `?size` and scrolls there; `?screen=<section>` opens
+  a page on a section (jumps again after `load` unless the viewer scrolled); a missing section → the kit's toast.
+- **Theme API** (optional): filter `prototype_kit_config` (ProtoChrome.init() options except `flows`: id, devices,
+  hints…), filter `prototype_kit_points` (suggested points while the site has no own list). JS: the chrome + boot
+  are deferred classic scripts in `<head>`, so they run before the theme's scripts / modules; the theme reads
+  `window.ProtoKitWP?.pc` (`pc.isHost` = the stage page: boot nothing) and calls `window.ProtoChrome ?? no-op`.
+  The site must work with the plugin off.
+- **WordPress glue**: `?embed=1` is WordPress's oEmbed query var (a singular page — a static front page too — would
+  render the embed card in the frame) → dropped from the query vars while the chrome is on (value `1` only);
+  wp-admin / login opened inside the device frame (admin-bar links) break out to the full window (the chrome samples
+  the frame every 150ms; heavy admin screens crashed Chrome inside it). The admin bar inside the frame is left as is.
+- Check: the frame shows the site (not an embed card), points scroll / open pages, devices switch, inspector toggles,
+  a theme's own JS still boots with the plugin off; tested with a classic theme, Twenty Twenty-One and Twenty
+  Twenty-Five (block).
+
 ## One-page flows (points = sections of one page)
 When the prototype is one long page (landing, long form, article) and the starting points are its sections, a
 point must **scroll to the section, never reload** — the kit's default "point = fresh load" is for multi-screen

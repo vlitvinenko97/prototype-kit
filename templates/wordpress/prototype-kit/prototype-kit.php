@@ -53,7 +53,10 @@ function prototype_kit_allowed( $tool ) {
 }
 
 /**
- * Whether this request is the chrome's device iframe (?embed=1).
+ * Whether this request is the chrome's device iframe (?embed=1). Only the frame's first page carries the flag: a link
+ * clicked inside the frame loads its page there without it, so `false` means "maybe the stage" — the browser has the
+ * final word (`window !== top`, which the chrome's own `isEmbed` / `pc.isHost` use). Never hide or skip anything
+ * a page needs on `false` alone.
  *
  * @return bool
  */

@@ -59,6 +59,13 @@ without the kit (wp-admin → Plugins → Add new → Upload).
   render the embed card in the frame) → dropped from the query vars while the chrome is on (value `1` only);
   wp-admin / login opened inside the device frame (admin-bar links) break out to the full window (the chrome samples
   the frame every 150ms; heavy admin screens crashed Chrome inside it). The admin bar inside the frame is left as is.
+- **Address bar follows the device** (2026-10-26): a link clicked inside the frame navigates only the frame; the embed
+  posts its path + query (without `embed`) and title to the stage on every load (and on a bfcache `pageshow`), the
+  stage `history.replaceState`s to it, keeping its own `?device` / `?size` — reload and a shared link land on that
+  page. replaceState, not pushState: the frame's navigation already made the history entry, so Back / Forward move the
+  frame and its next report fixes the address. A page without a point clears the lit point. Pages loaded in the frame
+  after the first have no `?embed=1` (links aren't rewritten) — PHP can't tell them from the stage
+  (`prototype_kit_is_embed()` = "maybe the stage"); JS decides by `window !== top`.
 - Check: the frame shows the site (not an embed card), points scroll / open pages, devices switch, inspector toggles,
   a theme's own JS still boots with the plugin off; tested with a classic theme, Twenty Twenty-One and Twenty
   Twenty-Five (block).

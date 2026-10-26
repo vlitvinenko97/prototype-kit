@@ -61,6 +61,10 @@ never depend on `pc-*` classes.
 - wp-admin / login opened inside the device frame (admin-bar links) break out to the full window: the chrome samples
   the frame's document every 150ms, and heavy admin screens (Themes) crashed Chrome that way.
 - The admin bar inside the frame is left as WordPress shows it.
+- The stage's address bar follows the page open in the device: the embed reports its path + query on every load, the
+  stage `history.replaceState`s to it (keeps `?device` / `?size`; the frame's navigation already made the history
+  entry, so Back / Forward work as usual). Only the frame's first page has `?embed=1` — links inside it aren't
+  rewritten — so `prototype_kit_is_embed()` false means "maybe the stage"; the browser decides (`window !== top`).
 
 ## Tested
 

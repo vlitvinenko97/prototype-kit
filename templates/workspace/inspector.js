@@ -23,6 +23,7 @@
   // ---------- Shadow-DOM overlay (immune to the prototype's styles and to itself) ----------
   const host = document.createElement('div');
   host.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483647;';
+  host.dataset.inspectorHost = '';
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `
 <style>
@@ -124,13 +125,49 @@
   if (!isTop) toggle.style.display = 'none';   // device iframe: the outer page has the pill
   // On <html>, outside <body>: pages may hide body children (device mode does)
   document.documentElement.appendChild(host);
-  // Like the prototype chrome's layers: if a page re-render removes it from <html>, put it back
-  new MutationObserver(() => { if (!host.isConnected) document.documentElement.appendChild(host); })
-    .observe(document.documentElement, { childList: true });
+
+  // ---------- Top layer: modal <dialog> / popovers ----------
+  // A dialog opened with showModal() and open popovers sit in the browser's top layer, above any z-index, and a modal
+  // dialog makes everything outside it inert: the shield never gets the mouse, nothing can be measured. So while the
+  // page has something in the top layer, the host is itself a manual popover shown above it (re-shown after every
+  // change, the last shown is on top) and lives inside the topmost modal dialog / auto popover: outside a modal it
+  // would be inert too, outside an auto popover a click on the shield would light-dismiss it. Popover = its own top
+  // layer box: the dialog's transform / overflow don't move or clip it. Without popover support it's only nested.
+  const canPopover = typeof host.showPopover === 'function';
+  const is = (e, sel) => { try { return e.matches(sel); } catch (_) { return false; } };
+  const modal = e => e.tagName === 'DIALOG' && e.open && is(e, ':modal');
+  const upTop = e => e !== host && e.isConnected && (modal(e) || is(e, ':popover-open'));
+  const holds = e => modal(e) || ((e.popover === 'auto' || e.popover === 'hint') && is(e, ':popover-open'));
+  let topStack = [];   // the page's top-layer elements in the order they were opened (last = topmost)
+  function syncTop(changed) {
+    if (changed && changed !== host) topStack = topStack.filter(e => e !== changed).concat(upTop(changed) ? [changed] : []);
+    topStack = topStack.filter(upTop);
+    for (const e of document.querySelectorAll('dialog[open], [popover]')) if (upTop(e) && !topStack.includes(e)) topStack.push(e);
+    const parent = topStack.findLast(holds) ?? document.documentElement;
+    if (host.parentNode !== parent) parent.appendChild(host);   // moving a shown popover hides it — shown again below
+    if (!canPopover) return;
+    try {
+      if (is(host, ':popover-open')) host.hidePopover();
+      if (topStack.length) { host.popover = 'manual'; host.showPopover(); }
+      else host.removeAttribute('popover');
+    } catch (_) {}
+  }
+  // the host as a popover: none of the UA popover box (margin auto, border, padding, Canvas background, fit-content)
+  host.style.cssText += ';margin:0;padding:0;border:0;background:none;overflow:visible;width:auto;height:auto;max-width:none;max-height:none;';
+  // dialogs: the open attribute; popovers: the toggle event (doesn't bubble — caught in capture). Like the prototype
+  // chrome's layers: if a page re-render removes the host (from <html> or a dialog), put it back.
+  new MutationObserver(recs => {
+    let changed = false;
+    for (const r of recs) if (r.type === 'attributes' && r.target.tagName === 'DIALOG') { syncTop(r.target); changed = true; }
+    if (!changed && !host.isConnected) syncTop();
+  }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['open'] });
+  document.addEventListener('toggle', e => { if (e.target !== host && e.target.hasAttribute?.('popover')) syncTop(e.target); }, true);
+  syncTop();
 
   // Freezes transitions while a state is forced / snapshotted, so values are final at once
   const freezeCss = document.createElement('style');
-  freezeCss.textContent = '.__ins-frozen *, .__ins-frozen *::before, .__ins-frozen *::after { transition: none !important; }';
+  freezeCss.textContent = '.__ins-frozen *, .__ins-frozen *::before, .__ins-frozen *::after { transition: none !important; }'
+    + '[data-inspector-host]::backdrop { display: none !important; }';   // the host as a popover: no page ::backdrop style on it
   document.head.appendChild(freezeCss);
 
   let on = false, hovered = null, pinned = null, alt = false, mouse = { x: 0, y: 0 };
